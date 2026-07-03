@@ -1,0 +1,36 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}Dashboard — courier spot Panel{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Dashboard</h1>
+  <a class="btn" href="{% url 'shipment_create' %}">+ New Shipment</a>
+</div>
+<div class="stats">
+  <div class="stat"><div class="n">{{ today_parcels }}</div><div class="l">Parcels Today</div></div>
+  <div class="stat"><div class="n red">{{ in_transit }}</div><div class="l">In Transit</div></div>
+  <div class="stat"><div class="n gold">NPR {{ today_income|floatformat:0 }}</div><div class="l">Income Today</div></div>
+  <div class="stat"><div class="n green">{{ total_parcels }}</div><div class="l">Total Parcels</div></div>
+</div>
+<div class="card">
+  <h3>Recent Parcels</h3>
+  <table>
+    <thead><tr><th>TRACKING ID</th><th>SENDER</th><th>DESTINATION</th><th>BRANCH</th><th>STATUS</th><th>DATE</th></tr></thead>
+    <tbody>
+      {% for p in recent %}
+      <tr onclick="location='{% url 'parcel_detail' p.pk %}'" style="cursor:pointer">
+        <td><b>{{ p.tracking_id }}</b></td><td>{{ p.sender_name }}</td><td>{{ p.destination_country }}</td>
+        <td>{{ p.branch.name }}</td><td><span class="pill pi-{{ p.status }}">{{ p.get_status_display }}</span></td>
+        <td>{{ p.created_at|date:"d M, g:i A" }}</td></tr>
+      {% empty %}<tr><td colspan="6" style="text-align:center;color:var(--muted)">No parcels yet — create your first shipment.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if enquiries %}
+<div class="card"><h3>Unresolved Website Enquiries</h3>
+  <table><thead><tr><th>FROM</th><th>TRACKING NO.</th><th>MESSAGE</th><th>DATE</th></tr></thead><tbody>
+  {% for e in enquiries %}<tr><td>{{ e.name }}<br><small style="color:var(--muted)">{{ e.email }}</small></td>
+  <td>{{ e.tracking_number|default:"—" }}</td><td>{{ e.message|truncatechars:80 }}</td><td>{{ e.created_at|date:"d M" }}</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endif %}
+{% endblock %}

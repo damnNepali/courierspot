@@ -1,0 +1,29 @@
+{% extends "public/base_public.html" %}
+{% block title %}My Parcels —Courier Spot{% endblock %}
+{% block content %}
+<section class="page-pad" style="min-height:85vh">
+  <div class="container" style="max-width:860px">
+    <div class="section-head" style="margin-bottom:40px">
+      <div class="badge"><span class="dot"></span> MY ACCOUNT</div>
+      <h2>Hello, <span class="accent">{{ user.first_name|default:user.username }}</span></h2>
+      <p>Every parcel linked to your phone number or email appears here automatically.</p>
+    </div>
+    <div class="parcel-grid">
+      {% for p in parcels %}
+      <a class="parcel-card" href="{% url 'public_track' p.tracking_id %}">
+        <div>
+          <div style="font-family:var(--display);font-weight:700">{{ p.tracking_id }}</div>
+          <div style="color:var(--muted);font-size:13.5px;margin-top:3px">To {{ p.receiver_name }} · {{ p.destination_country }} · {{ p.created_at|date:"d M Y" }}</div>
+        </div>
+        <span class="pstatus ps-{{ p.status }}">{{ p.get_status_display }}</span>
+      </a>
+      {% empty %}
+      <div class="tr-card" style="text-align:center">
+        <h3 style="margin-bottom:8px">No parcels yet</h3>
+        <p style="color:var(--muted);font-size:14.5px">When you ship with a Courier Spot branch using this phone number ({{ user.phone }}) or email, your parcels will show up here.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

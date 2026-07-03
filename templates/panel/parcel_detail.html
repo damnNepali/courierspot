@@ -1,0 +1,86 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}{{ parcel.tracking_id }} — Courier Spot Panel{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>{{ parcel.tracking_id }} <span class="pill pi-{{ parcel.status }}" style="vertical-align:middle">{{ parcel.get_status_display }}</span></h1>
+  <div>
+    <a class="btn ghost" href="{% url 'public_track' parcel.tracking_id %}" target="_blank">Public Tracking ↗</a>
+    <a class="btn" href="{% url 'invoice_print' parcel.invoice.pk %}">🖨 Invoice</a>
+  </div>
+</div>
+<div class="fgrid">
+  <div class="card">
+    <h3>Shipment</h3>
+    <table>
+      <tr><td style="color:var(--muted)">Sender</td><td><b>{{ parcel.sender_name }}</b> · {{ parcel.sender_phone }}<br>{{ parcel.sender_address }}</td></tr>
+      <tr><td style="color:var(--muted)">Receiver</td><td><b>{{ parcel.receiver_name }}</b> · {{ parcel.receiver_phone }}<br>{{ parcel.receiver_address }}, {{ parcel.destination_country }}</td></tr>
+      <tr><td style="color:var(--muted)">Invoice</td><td>{{ parcel.invoice.invoice_no }} — <b>NPR {{ parcel.invoice.grand_total|floatformat:0 }}</b></td></tr>
+      <tr><td style="color:var(--muted)">Branch</td><td>{{ parcel.branch.name }} · {{ parcel.created_at|date:"d M Y, g:i A" }} · by {{ parcel.created_by.username }}</td></tr>
+      <tr><td style="color:var(--muted)">Carrier</td><td>{% if parcel.carrier %}{{ parcel.get_carrier_display }} — {{ parcel.carrier_tracking_no|default:"no number yet" }}{% else %}Not handed over yet{% endif %}</td></tr>
+    </table>
+    {% if parcel.qr_code %}<div style="margin-top:16px"><img src="{{ parcel.qr_code.url }}" width="110" style="border:1px solid var(--border);border-radius:10px"></div>{% endif %}
+  </div>
+  <div>
+    <div class="card">
+      <h3>Update Status</h3>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="status">
+        <div class="fg"><label>New status</label><select name="status">
+          {% for val, label in statuses %}<option value="{{ val }}" {% if val == parcel.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></div>
+        <div class="fg"><label>Location</label><input name="location" placeholder="e.g. Tribhuvan Intl. Airport"></div>
+        <div class="fg"><label>Note</label><input name="note" placeholder="optional"></div>
+        <button class="btn">Update Status</button>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Carrier Handover</h3>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="carrier">
+        <div class="fg"><label>Carrier</label><select name="carrier">
+          {% for val, label in carriers %}<option value="{{ val }}" {% if val == parcel.carrier %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></div>
+        <div class="fg"><label>Carrier tracking number</label><input name="carrier_tracking_no" value="{{ parcel.carrier_tracking_no }}"></div>
+        <button class="btn navy">Save Handover</button>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <h3>📦 Boxes</h3>
+  <table>
+    <thead><tr><th>BOX (ITEMS)</th><th>WEIGHT</th><th>RATE/KG</th><th>ADDITIONAL CHARGES</th><th>BOX TOTAL</th></tr></thead>
+    <tbody>
+      {% for box in parcel.boxes.all %}
+      <tr>
+        <td><b>Box {{ forloop.counter }}</b>{% if box.items.all %} (
+          {% for item in box.items.all %}{{ item.name }} × {{ item.quantity }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          ){% endif %}</td>
+        <td>{{ box.weight|floatformat:2 }} kg</td>
+        <td>NPR {{ box.rate_per_kg|floatformat:0 }}</td>
+        <td>
+          {% for charge in box.charges.all %}{{ charge.name|default:"Charge" }}{% if charge.weight %} ({{ charge.weight|floatformat:2 }} kg){% endif %} — NPR {{ charge.price|floatformat:0 }}{% if not forloop.last %}<br>{% endif %}{% empty %}—{% endfor %}
+        </td>
+        <td><b>NPR {{ box.total|floatformat:0 }}</b></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="color:var(--muted)">No boxes recorded for this shipment.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <table style="margin-top:14px">
+    <tr><td style="color:var(--muted)">Total weight</td><td><b>{{ parcel.total_weight|floatformat:2 }} kg</b></td></tr>
+    <tr><td style="color:var(--muted)">Weight + additional charges</td><td>NPR {{ parcel.invoice.subtotal|floatformat:0 }}</td></tr>
+    <tr><td style="color:var(--muted)">Customs tax</td><td>NPR {{ parcel.invoice.customs_tax|floatformat:0 }}</td></tr>
+    <tr><td style="color:var(--muted)">Grand total</td><td><b>NPR {{ parcel.invoice.grand_total|floatformat:0 }}</b></td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>Tracking History</h3>
+  <table><thead><tr><th>STATUS</th><th>LOCATION</th><th>NOTE</th><th>BY</th><th>DATE & TIME</th></tr></thead><tbody>
+    {% for e in parcel.events.all %}
+    <tr><td><span class="pill pi-{{ e.status }}">{{ e.get_status_display }}</span></td>
+        <td>{{ e.location }}</td><td>{{ e.note|default:"—" }}</td>
+        <td>{{ e.created_by.username|default:"—" }}</td><td>{{ e.created_at|date:"d M Y, g:i A" }}</td></tr>
+    {% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

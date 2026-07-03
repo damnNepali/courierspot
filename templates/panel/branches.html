@@ -1,0 +1,32 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}Branches & Staff — Courier Spot Panel{% endblock %}
+{% block content %}
+<div class="topbar"><h1>Branches & Staff</h1><a class="btn" href="{% url 'staff_create' %}">+ Create Staff Account</a></div>
+<div class="fgrid">
+  <div class="card">
+    <h3>Add a Branch</h3>
+    <form method="post">{% csrf_token %}
+      <div class="fg"><label>Branch name *</label><input name="name" placeholder="e.g. Courier Spot — Pokhara" required></div>
+      <div class="fg"><label>Location *</label><input name="location" placeholder="City / area" required></div>
+      <div class="fg"><label>Address *</label><input name="address" required></div>
+      <div class="fgrid">
+        <div class="fg"><label>Phone *</label><input name="phone" required></div>
+        <div class="fg"><label>Email</label><input type="email" name="email"></div>
+      </div>
+      <button class="btn">Create Branch</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Branches</h3>
+    <table><thead><tr><th>NAME</th><th>LOCATION</th><th>PHONE</th></tr></thead><tbody>
+      {% for b in branches %}<tr><td><b>{{ b.name }}</b></td><td>{{ b.location }}</td><td>{{ b.phone }}</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+</div>
+<div class="card">
+  <h3>Panel Accounts</h3>
+  <table><thead><tr><th>USERNAME</th><th>NAME</th><th>ROLE</th><th>BRANCH</th></tr></thead><tbody>
+    {% for s in staff %}<tr><td><b>{{ s.username }}</b></td><td>{{ s.first_name }}</td><td>{{ s.get_role_display }}</td><td>{{ s.branch.name|default:"—" }}</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

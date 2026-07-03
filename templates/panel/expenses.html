@@ -1,0 +1,39 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}Expenses — Courier spot Panel{% endblock %}
+{% block content %}
+<div class="topbar"><h1>Expense Sheet</h1></div>
+<div class="fgrid">
+  <div class="card">
+    <h3>Record an Expense</h3>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+      <div class="fg"><label>Description *</label><input name="description" required></div>
+      <div class="fgrid">
+        <div class="fg"><label>Category *</label><select name="category">
+          {% for val, label in categories %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="fg"><label>Amount (NPR) *</label><input type="number" step="0.01" name="amount" required></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label>Date *</label><input type="date" name="date" required></div>
+        <div class="fg"><label>Bill / invoice photo</label><input type="file" name="bill_image" accept="image/*"></div>
+      </div>
+      <button class="btn">Save Expense</button>
+    </form>
+  </div>
+  <div class="stat" style="align-self:start">
+    <div class="n red">NPR {{ total|floatformat:0 }}</div>
+    <div class="l">Total expenses {% if not user.is_owner %}({{ user.branch.name }}){% endif %}</div>
+    {% if user.is_owner %}<p style="font-size:12.5px;color:var(--muted);margin-top:8px">Remaining balance per branch is in <a href="{% url 'finance' %}" style="color:var(--crimson)">Finance & Audit</a>.</p>{% endif %}
+  </div>
+</div>
+<div class="card">
+  <h3>Recorded Expenses</h3>
+  <table><thead><tr><th>DATE</th><th>DESCRIPTION</th><th>CATEGORY</th><th>BRANCH</th><th>AMOUNT</th><th>BILL</th><th>BY</th></tr></thead><tbody>
+    {% for e in expenses %}
+    <tr><td>{{ e.date|date:"d M Y" }}</td><td>{{ e.description }}</td><td>{{ e.get_category_display }}</td>
+        <td>{{ e.branch.name }}</td><td><b>NPR {{ e.amount|floatformat:0 }}</b></td>
+        <td>{% if e.bill_image %}<a href="{{ e.bill_image.url }}" target="_blank" style="color:var(--crimson)">View bill ↗</a>{% else %}—{% endif %}</td>
+        <td>{{ e.created_by.username }}</td></tr>
+    {% empty %}<tr><td colspan="7" style="text-align:center;color:var(--muted)">No expenses recorded yet.</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

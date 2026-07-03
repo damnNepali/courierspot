@@ -1,0 +1,20 @@
+{% extends "public/base_public.html" %}
+{% block title %}Sign Up — Courier Spot{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <form class="auth-card" method="post">{% csrf_token %}
+    <h2>Create Your <span class="accent">Account</span></h2>
+    <p class="hint">Your details are saved securely so you can track every shipment in one place.</p>
+    {% for field in form %}
+      <div class="fgroup">
+        <label>{{ field.label }}</label>{{ field }}
+        {% if field.errors %}<p class="errors">{{ field.errors.0 }}</p>{% endif %}
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary" type="submit">Sign Up</button>
+    <p class="auth-foot">Already have an account? <a href="{% url 'login' %}">Login</a></p>
+  </form>
+</div>
+<style>.auth-card input{width:100%;background:#0E1115;border:1px solid var(--border);border-radius:11px;padding:13px 16px;color:#fff;font-family:var(--body);font-size:14.5px;outline:none}
+.auth-card input:focus{border-color:rgba(200,16,46,.6)}.auth-card .helptext{display:none}</style>
+{% endblock %}

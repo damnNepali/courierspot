@@ -1,0 +1,49 @@
+{% extends "public/base_public.html" %}
+{% block title %}Track Parcel — Courier Spot{% endblock %}
+{% block content %}
+<section class="page-pad" style="min-height:88vh">
+  <div class="container" style="max-width:720px">
+    <div class="section-head" style="margin-bottom:44px">
+      <div class="badge"><span class="dot"></span> LIVE TRACKING</div>
+      <h2>Track Your <span class="accent">Parcel</span></h2>
+    </div>
+
+    <form class="track-box" id="trackForm" style="margin-bottom:34px">
+      <span class="icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
+      <input id="trackInput" type="text" value="{{ tid }}" placeholder="Enter your tracking ID · e.g. BCS-2026-000123" autocomplete="off">
+      <button class="btn btn-primary" type="submit">Track Parcel</button>
+    </form>
+
+    {% if parcel %}
+    <div class="tr-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px">
+        <div class="tid"><small>TRACKING ID</small><span>{{ parcel.tracking_id }}</span></div>
+        <span class="pstatus ps-{{ parcel.status }}">{{ parcel.get_status_display }}</span>
+      </div>
+      <p style="color:var(--muted);font-size:14px;margin-top:10px">
+        Destination: <b style="color:#fff">{{ parcel.destination_country }}</b>
+        {% if parcel.carrier %} · Carrier: <b style="color:#fff">{{ parcel.get_carrier_display }}</b>
+          {% if parcel.carrier_tracking_no %} ({{ parcel.carrier_tracking_no }}){% endif %}{% endif %}
+      </p>
+      <div class="tline">
+        {% for step in timeline %}
+        <div class="tstep {% if step.done %}done{% else %}pending{% endif %}">
+          <div class="tdot">{% if step.done %}✓{% endif %}</div>
+          <div>
+            <h4>{{ step.label }}</h4>
+            <p>{% if step.when %}{{ step.location }} · {{ step.when|date:"d M Y, g:i A" }}{% if step.note %} — {{ step.note }}{% endif %}
+               {% else %}Pending{% endif %}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% elif searched %}
+    <div class="tr-card" style="text-align:center">
+      <h3 style="margin-bottom:8px">No parcel found for “{{ tid }}”</h3>
+      <p style="color:var(--muted);font-size:14.5px">Check the ID on your invoice (format BCS-YYYY-XXXXXX) or <a href="/#contact" style="color:var(--crimson-2)">contact us</a> — we're happy to help.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

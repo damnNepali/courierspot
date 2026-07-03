@@ -1,0 +1,29 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}Finance & Audit — Courier Spot Panel{% endblock %}
+{% block content %}
+<div class="topbar"><h1>Finance & Audit <span style="font-size:13px;color:var(--muted);font-weight:400">(owner only)</span></h1></div>
+<div class="stats">
+  <div class="stat"><div class="n green">NPR {{ totals.income|floatformat:0 }}</div><div class="l">Total Income (all branches)</div></div>
+  <div class="stat"><div class="n red">NPR {{ totals.spent|floatformat:0 }}</div><div class="l">Total Expenses</div></div>
+  <div class="stat"><div class="n gold">NPR {{ totals.balance|floatformat:0 }}</div><div class="l">Remaining Balance</div></div>
+</div>
+<div class="card">
+  <h3>Per-Branch Breakdown</h3>
+  <table><thead><tr><th>BRANCH</th><th>INCOME</th><th>EXPENSES</th><th>REMAINING BALANCE</th></tr></thead><tbody>
+    {% for r in rows %}
+    <tr><td><b>{{ r.branch.name }}</b> <small style="color:var(--muted)">{{ r.branch.location }}</small></td>
+        <td style="color:#15803D">NPR {{ r.income|floatformat:0 }}</td>
+        <td style="color:var(--crimson)">NPR {{ r.spent|floatformat:0 }}</td>
+        <td><b>NPR {{ r.balance|floatformat:0 }}</b></td></tr>
+    {% endfor %}
+  </tbody></table>
+</div>
+<div class="card">
+  <h3>Audit Log — who did what, when</h3>
+  <table><thead><tr><th>DATE & TIME</th><th>USER</th><th>ACTION</th></tr></thead><tbody>
+    {% for a in audit %}
+    <tr><td>{{ a.created_at|date:"d M Y, g:i A" }}</td><td>{{ a.user.username|default:"—" }}</td><td>{{ a.action }}</td></tr>
+    {% empty %}<tr><td colspan="3" style="text-align:center;color:var(--muted)">No activity yet.</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

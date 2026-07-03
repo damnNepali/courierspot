@@ -1,0 +1,240 @@
+{% extends "public/base_public.html" %}
+{% block content %}
+<!-- ============ HERO ============ -->
+<header class="hero" id="top">
+  <!-- floating outline icons -->
+  <svg class="float-ic" style="top:21%;right:11%;width:74px" viewBox="-50 -56 100 100" fill="none" stroke="currentColor" stroke-width="3"><path d="M0,-45 C3,-45 5,-40 5,-32 L5,-12 L38,8 L38,16 L5,4 L5,22 L14,30 L14,36 L0,31 L-14,36 L-14,30 L-5,22 L-5,4 L-38,16 L-38,8 L-5,-12 L-5,-32 C-5,-40 -3,-45 0,-45 Z" transform="rotate(40)"/></svg>
+  <svg class="float-ic f2" style="top:30%;left:9%;width:56px" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="24" cy="24" r="19"/><ellipse cx="24" cy="24" rx="8.5" ry="19"/><line x1="5" y1="24" x2="43" y2="24"/></svg>
+  <svg class="float-ic f3" style="bottom:17%;left:15%;width:50px" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M24 5 42 14v20L24 43 6 34V14z"/><path d="M6 14l18 9 18-9M24 23v20"/></svg>
+
+  <div class="container">
+    <div class="badge reveal visible"><span class="dot"></span> GLOBAL AIR LOGISTICS NETWORK · KATHMANDU</div>
+    <h1 class="reveal visible d1">From Nepal to the World,<br><span class="accent">Delivered with Courier Spot</span></h1>
+    <p class="sub reveal visible d2">Partnered with the world's leading carriers — <b>FedEx, DHL Express, Aramex, SkyNet</b> and <b>DPD</b> — for fast, insured international shipping to over 100 countries.</p>
+
+    <div id="track" class="reveal visible d3">
+      <form class="track-box" id="trackForm">
+        <span class="icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
+        <input id="trackInput" type="text" placeholder="Enter your tracking ID  ·  e.g. BCS-2026-000123" autocomplete="off">
+        <button class="btn btn-primary" type="submit">Track Parcel
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="13 5 20 12 13 19"/></svg>
+        </button>
+      </form>
+      <p class="micro">Supports tracking IDs from all Courier Spot branches · Scan your invoice QR for instant tracking</p>
+
+      </div>
+  </div>
+</header>
+
+
+<!-- ============ PARTNERS ============ -->
+<div class="partners">
+  <div class="container">
+    <div class="label reveal">TRUSTED GLOBAL CARRIER PARTNERS</div>
+    <div class="partner-row">
+      <span class="partner reveal">FedEx</span>
+      <span class="partner reveal d1">DHL Express</span>
+      <span class="partner reveal d2">Aramex</span>
+      <span class="partner reveal d3">SkyNet</span>
+      <span class="partner reveal d4">dpd</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how">
+  <div class="container">
+    <div class="section-head">
+      <div class="badge reveal"><span class="dot"></span> OUR PROCESS</div>
+      <h2 class="reveal d1">How Courier Spot Delivers <span class="accent">Your Parcel</span></h2>
+      <p class="reveal d2">From registration to delivery, every step is tracked, timestamped and visible to you in real time.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="ic"><span class="num">1</span><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></div>
+        <h3>Parcel Registration</h3><p>Visit any branch — we register your parcel, weigh it and issue your invoice with a QR tracking code.</p>
+      </div>
+      <div class="step reveal d1">
+        <div class="ic"><span class="num">2</span><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 11-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.55-1H3a2 2 0 110-4h.09a1.7 1.7 0 001.55-1 1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34h0a1.7 1.7 0 001-1.55V3a2 2 0 114 0v.09a1.7 1.7 0 001 1.55h0a1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87v0a1.7 1.7 0 001.55 1H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg></div>
+        <h3>Parcel Processing</h3><p>Customs documentation, the NPR 2,000 customs clearance, and carrier handover — handled for you.</p>
+      </div>
+      <div class="step reveal d2">
+        <div class="ic"><span class="num">3</span><svg width="40" height="40" viewBox="-50 -56 100 100" fill="#fff"><path d="M0,-45 C3,-45 5,-40 5,-32 L5,-12 L38,8 L38,16 L5,4 L5,22 L14,30 L14,36 L0,31 L-14,36 L-14,30 L-5,22 L-5,4 L-38,16 L-38,8 L-5,-12 L-5,-32 C-5,-40 -3,-45 0,-45 Z" transform="rotate(40)"/></svg></div>
+        <h3>Parcel In-Transit</h3><p>Your parcel flies with FedEx, DHL Express, Aramex, SkyNet or DPD — track it live with your Courier Spot ID.</p>
+      </div>
+      <div class="step reveal d3">
+        <div class="ic"><span class="num">4</span><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/><path d="M16.5 10.5l-3 1.7"/></svg></div>
+        <h3>Parcel Delivered</h3><p>Safe and on-time delivery to the doorstep — insured from the moment it leaves your hands.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ COVERAGE ============ -->
+<section id="coverage">
+  <div class="container">
+    <div class="section-head">
+      <div class="badge reveal"><span class="dot"></span> GLOBAL NETWORK</div>
+      <h2 class="reveal d1">Worldwide <span class="accent">Coverage</span></h2>
+      <p class="reveal d2">Our air logistics network connects Kathmandu to major hubs across every continent.</p>
+    </div>
+
+    <div class="map-wrap reveal">
+      <svg class="map-svg" viewBox="0 0 1000 480" xmlns="http://www.w3.org/2000/svg" aria-label="World coverage map showing routes from Kathmandu">
+        <defs>
+          <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#F2A900"/><stop offset="100%" stop-color="#E63946"/>
+          </linearGradient>
+          <pattern id="grid" width="50" height="48" patternUnits="userSpaceOnUse">
+            <path d="M50 0H0V48" fill="none" stroke="#20242B" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="1000" height="480" rx="14" fill="#0E1115"/>
+        <rect width="1000" height="480" rx="14" fill="url(#grid)"/>
+
+        <!-- abstract landmass hints -->
+        <g fill="#181D24">
+          <path d="M95 95 Q170 60 245 95 Q280 130 250 185 Q215 225 165 210 Q105 195 90 150 Z"/>
+          <path d="M225 250 Q270 235 290 280 Q305 340 270 390 Q240 420 220 375 Q200 310 225 250 Z"/>
+          <path d="M430 105 Q480 75 540 95 Q575 115 560 150 Q520 175 470 165 Q430 145 430 105 Z"/>
+          <path d="M440 185 Q510 165 560 205 Q590 260 560 320 Q520 370 470 340 Q430 290 440 185 Z"/>
+          <path d="M590 90 Q700 55 810 95 Q870 130 850 185 Q790 230 700 215 Q615 200 590 140 Z"/>
+          <path d="M600 165 Q660 150 700 195 Q720 240 690 275 Q650 290 620 250 Q595 205 600 165 Z"/>
+          <path d="M790 300 Q850 280 890 320 Q910 360 875 390 Q820 405 790 365 Q775 330 790 300 Z"/>
+        </g>
+
+        <!-- routes from Kathmandu (645,205) -->
+        <path class="route" d="M645 205 Q540 90 415 125"/>
+        <path class="route" style="animation-delay:.4s" d="M645 205 Q430 60 175 120"/>
+        <path class="route" style="animation-delay:.8s" d="M645 205 Q620 250 565 255"/>
+        <path class="route" style="animation-delay:1.2s" d="M645 205 Q740 110 815 130"/>
+        <path class="route" style="animation-delay:1.6s" d="M645 205 Q760 290 845 335"/>
+        <path class="route" style="animation-delay:2s" d="M645 205 Q480 300 255 300"/>
+
+        <!-- destination cities -->
+        <g>
+          <circle class="city" cx="415" cy="125" r="4.5"/><text class="city-label" x="402" y="110">London</text>
+          <circle class="city" cx="175" cy="120" r="4.5"/><text class="city-label" x="150" y="105">New York</text>
+          <circle class="city" cx="565" cy="255" r="4.5"/><text class="city-label" x="550" y="278">Dubai</text>
+          <circle class="city" cx="815" cy="130" r="4.5"/><text class="city-label" x="800" y="115">Tokyo</text>
+          <circle class="city" cx="845" cy="335" r="4.5"/><text class="city-label" x="822" y="360">Sydney</text>
+          <circle class="city" cx="255" cy="300" r="4.5"/><text class="city-label" x="225" y="324">São Paulo</text>
+        </g>
+
+        <!-- Kathmandu hub -->
+        <circle class="hub-ring" cx="645" cy="205" r="6"/>
+        <circle class="hub" cx="645" cy="205" r="6.5"/>
+        <text x="630" y="186" font-family="Sora,sans-serif" font-size="13.5" font-weight="700" fill="#fff">Kathmandu</text>
+        <text x="640" y="232" class="city-label" fill="#F2A900">HOME HUB · NEPAL</text>
+      </svg>
+    </div>
+
+    <div class="coverage-stats">
+      <div class="cstat reveal"><div class="n" data-count="100"><span class="cv">0</span><small>+</small></div><div class="l">Countries Served</div></div>
+      <div class="cstat reveal d1"><div class="n" data-count="5"><span class="cv">0</span></div><div class="l">Global Carrier Partners</div></div>
+      <div class="cstat reveal d2"><div class="n" data-count="24"><span class="cv">0</span><small>/7</small></div><div class="l">Parcel Tracking</div></div>
+      <div class="cstat reveal d3"><div class="n" data-count="100"><span class="cv">0</span><small>%</small></div><div class="l">Insured Shipments</div></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ INSURED ============ -->
+<section id="insured">
+  <div class="container insure">
+    <div>
+      <div class="badge reveal"><span class="dot"></span> SHIP WITH CONFIDENCE</div>
+      <h2 class="reveal d1">Every Parcel,<br><span class="accent">Fully Insured</span></h2>
+      <p class="lead reveal d2">Your trust is our responsibility — it's literally our name. Every shipment that leaves a Courier Spot branch is insured, documented and trackable from the first scan to the final signature.</p>
+      <div class="feature reveal d2">
+        <div class="fic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4.5"/></svg></div>
+        <div><h4>Insured Shipping</h4><p>Declared-value protection on every international parcel, at no hidden cost.</p></div>
+      </div>
+      <div class="feature reveal d3">
+        <div class="fic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 18h3v3h-3z"/></svg></div>
+        <div><h4>QR-Coded Invoices</h4><p>Scan the QR on your invoice and your parcel's live timeline opens instantly.</p></div>
+      </div>
+      <div class="feature reveal d4">
+        <div class="fic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+        <div><h4>Transparent Timeline</h4><p>Every status change is timestamped with date, time and location — nothing hidden.</p></div>
+      </div>
+    </div>
+    <div class="shield-art reveal d2">
+      <svg viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E63946"/><stop offset="1" stop-color="#8E0B20"/></linearGradient></defs>
+        <path d="M160 18l118 50v92c0 76-52 128-118 156C94 288 42 236 42 160V68z" fill="#16191E" stroke="#262A31" stroke-width="2"/>
+        <path d="M160 44l96 41v77c0 63-43 106-96 130-53-24-96-67-96-130V85z" fill="url(#sg)" opacity=".14"/>
+        <g transform="translate(160,150) scale(1.25)" fill="#E63946">
+          <path d="M0,-45 C3,-45 5,-40 5,-32 L5,-12 L38,8 L38,16 L5,4 L5,22 L14,30 L14,36 L0,31 L-14,36 L-14,30 L-5,22 L-5,4 L-38,16 L-38,8 L-5,-12 L-5,-32 C-5,-40 -3,-45 0,-45 Z" transform="rotate(38)" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+        </g>
+        <text x="160" y="262" text-anchor="middle" font-family="Sora,sans-serif" font-weight="700" font-size="15" fill="#fff">100% INSURED</text>
+        <text x="160" y="284" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="12.5" fill="#F2A900">On Time, Everytime</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ RATES ============ -->
+<section id="rates">
+  <div class="container">
+    <div class="section-head">
+      <div class="badge reveal"><span class="dot"></span> SIMPLE PRICING</div>
+      <h2 class="reveal d1">Shipping <span class="accent">Rates</span></h2>
+      <p class="reveal d2">Transparent per-kilogram pricing with estimated delivery times. Customs clearance of NPR 2,000 applies per parcel.</p>
+    </div>
+    <div class="reveal">
+      <table class="rate-table">
+        <thead><tr><th>DESTINATION</th><th>RATE / KG</th><th>DELIVERY TIME</th><th>CARRIERS</th></tr></thead>
+        <tbody>
+          {% for r in rates %}
+          <tr><td><span class="flag">{{ r.flag }}</span>{{ r.country }}</td>
+              <td class="price">NPR {{ r.rate_per_kg|floatformat:0 }}</td>
+              <td>{{ r.delivery_days }}</td><td>{{ r.carriers }}</td></tr>
+          {% empty %}
+          <tr><td colspan="4" style="text-align:center;color:#5d6772">Rates coming soon.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="rate-note">Final rates are confirmed at your branch by weight and destination. <a href="{% url 'rates_page' %}" style="color:var(--crimson-2)">View all destinations & restricted items →</a></p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ CONTACT ============ -->
+<section id="contact">
+  <div class="container">
+    <div class="section-head">
+      <div class="badge reveal"><span class="dot"></span> GET IN TOUCH</div>
+      <h2 class="reveal d1">Contact <span class="accent">Us</span></h2>
+      <p class="reveal d2">Have a question about your shipment? Our team is here to help, 24/7.</p>
+    </div>
+    <div class="contact-grid">
+      <div class="cinfo reveal">
+        <h3>Contact Information</h3>
+        <p>Reach out anytime — we're always ready to assist with your shipping needs.</p>
+        <div class="cline"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div><div><small>EMAIL</small><span>courierspot1@gmail.com</span></div></div>
+        <div class="cline"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 2 .7 2.9a2 2 0 01-.5 2.1L8.1 10a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.9.6 2.9.7a2 2 0 011.6 2z"/></svg></div><div><small>PHONE</small><span>+977 98XXXXXXXX<br>+977 01-XXXXXXX</span></div></div>
+        <div class="cline"><div class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1116 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><small>HEAD OFFICE</small><span>Kathmandu, Nepal</span></div></div>
+        <div class="hours"><h4>Support Hours</h4><p>24/7 Parcel Tracking<br>Sun–Fri: Office Hours 9 AM – 6 PM</p></div>
+      </div>
+      <form class="cform reveal d2" id="contactForm" method="post" action="{% url 'contact_submit' %}">{% csrf_token %}
+        <div class="frow">
+          <div class="fgroup"><label>Name <em>*</em></label><input type="text" name="name" placeholder="Your name" required></div>
+          <div class="fgroup"><label>Email <em>*</em></label><input type="email" name="email" placeholder="your@email.com" required></div>
+        </div>
+        <div class="fgroup"><label>Tracking Number <span style="color:#5d6772;font-weight:400">(optional)</span></label><input type="text" name="tracking_number" placeholder="Enter tracking number if applicable"></div>
+        <div class="fgroup"><label>Message <em>*</em></label><textarea name="message" placeholder="How can we help you?" required></textarea></div>
+        <button class="btn btn-primary" type="submit">Send Message
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+
+{% endblock %}

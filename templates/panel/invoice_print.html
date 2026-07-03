@@ -1,0 +1,89 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}{{ inv.invoice_no }} — Invoice{% endblock %}
+{% block content %}
+<div class="topbar no-print">
+  <h1>Invoice {{ inv.invoice_no }}</h1>
+  <div><a class="btn ghost" href="{% url 'parcel_detail' inv.parcel.pk %}">← Back to Parcel</a>
+  <button class="btn" onclick="print()">🖨 Print Invoice</button></div>
+</div>
+
+<div class="card" id="invoice" style="max-width:820px;margin:0 auto;padding:42px">
+  <!-- header -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0B2545;padding-bottom:18px;margin-bottom:22px">
+    <div style="display:flex;gap:14px;align-items:center">
+      <span style="width:54px;height:54px;border-radius:13px;background:linear-gradient(135deg,#E63946,#8E0B20);display:grid;place-items:center">
+        <svg width="32" height="32" viewBox="-50 -56 100 100"><path d="M0,-45 C3,-45 5,-40 5,-32 L5,-12 L38,8 L38,16 L5,4 L5,22 L14,30 L14,36 L0,31 L-14,36 L-14,30 L-5,22 L-5,4 L-38,16 L-38,8 L-5,-12 L-5,-32 C-5,-40 -3,-45 0,-45 Z" fill="#fff" transform="rotate(38)"/></svg></span>
+      <div>
+        <div style="font-family:'Sora';font-weight:800;font-size:21px;color:#0B2545">COURIER SPOT PVT. LTD.</div>
+        <div style="font-style:italic;color:#C8102E;font-size:13px">“On Time, Everytime”</div>
+        <div style="font-size:12.5px;color:#64748B;margin-top:2px">{{ inv.branch.name }} · {{ inv.branch.address }} · {{ inv.branch.phone }}</div>
+      </div>
+    </div>
+    <div style="text-align:right;font-size:13.5px">
+      <div style="font-family:'Sora';font-weight:800;font-size:17px;color:#C8102E">{{ inv.invoice_no }}</div>
+      <div><b>Tracking:</b> {{ inv.parcel.tracking_id }}</div>
+      <div>{{ inv.created_at|date:"d M Y, g:i A" }}</div>
+    </div>
+  </div>
+
+  <!-- from / to -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px">
+    <div style="border:1px solid #E3E8EF;border-radius:10px;padding:16px">
+      <div style="font-size:11px;letter-spacing:1px;color:#64748B;margin-bottom:6px">FROM (SENDER)</div>
+      <b>{{ inv.parcel.sender_name }}</b><br>{{ inv.parcel.sender_phone }}<br>
+      <span style="font-size:13.5px">{{ inv.parcel.sender_address }}</span>
+    </div>
+    <div style="border:1px solid #E3E8EF;border-radius:10px;padding:16px">
+      <div style="font-size:11px;letter-spacing:1px;color:#64748B;margin-bottom:6px">TO (RECEIVER)</div>
+      <b>{{ inv.parcel.receiver_name }}</b><br>{{ inv.parcel.receiver_phone }}<br>
+      <span style="font-size:13.5px">{{ inv.parcel.receiver_address }}, <b>{{ inv.parcel.destination_country }}</b></span>
+    </div>
+  </div>
+
+  <!-- boxes -->
+  <table style="margin-bottom:18px">
+    <thead><tr><th>#</th><th>BOX (ITEMS)</th><th>WEIGHT (KG)</th><th>RATE/KG</th><th>BOX CHARGE</th></tr></thead>
+    <tbody>
+      {% for box in inv.parcel.boxes.all %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td><b>Box {{ forloop.counter }}</b>{% if box.items.all %} (
+          {% for item in box.items.all %}{{ item.name }} × {{ item.quantity }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          ){% endif %}</td>
+        <td>{{ box.weight|floatformat:2 }}</td>
+        <td>NPR {{ box.rate_per_kg|floatformat:0 }}</td>
+        
+        <td><b>NPR {{ box.total|floatformat:0 }}</b></td>
+      </tr>
+      {% endfor %}
+      <tr style="background:#F1F5F9"><td colspan="2" style="text-align:right"><b>TOTAL WEIGHT</b></td><td colspan="4"><b>{{ inv.total_weight|floatformat:2 }} kg</b></td></tr>
+    </tbody>
+  </table>
+
+  <!-- charges + QR -->
+  <div style="display:grid;grid-template-columns:1fr 170px;gap:24px;align-items:start;margin-bottom:30px">
+    <table>
+      <tr><td>Weight charge (all boxes)</td>
+          <td style="text-align:right">NPR {{ inv.weight_charge|floatformat:2 }}</td></tr>
+      <tr><td>Additional charges (all Items)</td>
+          <td style="text-align:right">NPR {{ inv.additional_charges_total|floatformat:2 }}</td></tr>
+      <tr><td><b>Customs Tax (compulsory)</b></td><td style="text-align:right"><b>NPR {{ inv.customs_tax|floatformat:2 }}</b></td></tr>
+      <tr style="background:#0B2545;color:#fff"><td style="font-family:'Sora';font-weight:800">GRAND TOTAL</td>
+          <td style="text-align:right;font-family:'Sora';font-weight:800;font-size:17px;color:#F2A900">NPR {{ inv.grand_total|floatformat:2 }}</td></tr>
+    </table>
+    <div style="text-align:center">
+      {% if inv.parcel.qr_code %}<img src="{{ inv.parcel.qr_code.url }}" width="140" style="border:1px solid #E3E8EF;border-radius:8px">{% endif %}
+      <div style="font-size:11px;color:#64748B;margin-top:5px">Scan to track your parcel</div>
+    </div>
+  </div>
+
+  <!-- signatures -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:46px">
+    <div style="border-top:1.5px solid #1A2433;padding-top:8px;font-size:13px"><b>Branch Manager Signature</b><br><span style="color:#64748B">{{ inv.branch.name }}</span></div>
+    <div style="border-top:1.5px solid #1A2433;padding-top:8px;font-size:13px;text-align:right"><b>Customer Signature</b><br><span style="color:#64748B">Goods received in good condition</span></div>
+  </div>
+  <div style="text-align:center;color:#94A3B8;font-size:11.5px;margin-top:28px">
+    COURIER SPOT Pvt. Ltd. · Track anytime at courierspot.com.np/track/{{ inv.parcel.tracking_id }} · Entered by {{ inv.created_by.username }}
+  </div>
+</div>
+{% endblock %}

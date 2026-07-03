@@ -1,0 +1,27 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}Parcels — Courier Spot Panel{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Parcels</h1>
+  <form method="get"><div class="search">
+    <input name="q" value="{{ q }}" placeholder="Search tracking ID, invoice no., phone or name…">
+    <button>🔍</button></div></form>
+  <a class="btn" href="{% url 'shipment_create' %}">+ New Shipment</a>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>TRACKING ID</th><th>INVOICE</th><th>SENDER</th><th>RECEIVER</th><th>DESTINATION</th><th>STATUS</th><th>TOTAL</th><th>DATE & TIME</th></tr></thead>
+    <tbody>
+      {% for p in parcels %}
+      <tr onclick="location='{% url 'parcel_detail' p.pk %}'" style="cursor:pointer">
+        <td><b>{{ p.tracking_id }}</b></td><td>{{ p.invoice.invoice_no }}</td>
+        <td>{{ p.sender_name }}<br><small style="color:var(--muted)">{{ p.sender_phone }}</small></td>
+        <td>{{ p.receiver_name }}</td><td>{{ p.destination_country }}</td>
+        <td><span class="pill pi-{{ p.status }}">{{ p.get_status_display }}</span></td>
+        <td><b>NPR {{ p.invoice.grand_total|floatformat:0 }}</b></td>
+        <td>{{ p.created_at|date:"d M Y, g:i A" }}</td></tr>
+      {% empty %}<tr><td colspan="8" style="text-align:center;color:var(--muted)">No parcels found{% if q %} for “{{ q }}”{% endif %}.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}New Staff — Courier spot Panel{% endblock %}
+{% block content %}
+<div class="topbar"><h1>Create Panel Account</h1></div>
+<div class="card" style="max-width:560px">
+  <form method="post">{% csrf_token %}
+    {% for field in form %}
+      <div class="fg"><label>{{ field.label }}</label>{{ field }}
+      {% if field.errors %}<p style="color:var(--crimson);font-size:12.5px;margin-top:4px">{{ field.errors.0 }}</p>{% endif %}</div>
+    {% endfor %}
+    <button class="btn">Create Account</button>
+  </form>
+</div>
+<style>.card .helptext{font-size:11.5px;color:var(--muted)}.card ul{padding-left:18px;font-size:11.5px;color:var(--muted)}</style>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "public/base_public.html" %}
+{% block title %}Login — Courier Spot{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <form class="auth-card" method="post">{% csrf_token %}
+    <h2>Welcome <span class="accent">Back</span></h2>
+    <p class="hint">Log in to track your parcels or open the staff panel.</p>
+    {% if form.errors %}<p class="errors">Invalid username or password.</p>{% endif %}
+    <div class="fgroup"><label>Username</label><input type="text" name="username" required autofocus></div>
+    <div class="fgroup"><label>Password</label><input type="password" name="password" required></div>
+    <button class="btn btn-primary" type="submit">Login</button>
+    <p class="auth-foot">New customer? <a href="{% url 'signup' %}">Create an account</a></p>
+  </form>
+</div>
+{% endblock %}

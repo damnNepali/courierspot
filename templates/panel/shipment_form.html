@@ -1,0 +1,206 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}New Shipment — Courier Spot Panel{% endblock %}
+{% block content %}
+<div class="topbar"><h1>New Shipment</h1></div>
+<form method="post" id="shipForm">{% csrf_token %}
+  <div class="fgrid">
+    <div class="card">
+      <h3>📤 Sender (From)</h3>
+      <div class="fg"><label>Phone * <small style="color:var(--muted);font-weight:400">— repeat customers auto-fill</small></label>
+        <input name="sender_phone" id="sphone" required></div>
+      <div class="fg"><label>Full Name *</label><input name="sender_name" id="sname" required></div>
+      <div class="fg"><label>Address *</label><input name="sender_address" id="saddr" required></div>
+      <div class="fg"><label>Email</label><input type="email" name="sender_email" id="semail"></div>
+    </div>
+    <div class="card">
+      <h3>📥 Receiver (To)</h3>
+      <div class="fg"><label>Full Name *</label><input name="receiver_name" required></div>
+      <div class="fg"><label>Phone *</label><input name="receiver_phone" required></div>
+      <div class="fg"><label>Address *</label><input name="receiver_address" required></div>
+      <div class="fg"><label>Destination Country *</label>
+        <select name="destination_country" id="country" required>
+          <option value="">— select country —</option>
+          {% for r in rates %}<option value="{{ r.country }}" data-rate="{{ r.rate_per_kg }}">{{ r.flag }} {{ r.country }} — NPR {{ r.rate_per_kg|floatformat:0 }}/kg</option>{% endfor %}
+        </select></div>
+    </div>
+  </div>
+
+  <div id="boxesContainer">
+    <div class="card box" data-box-index="0">
+      <div class="topbar" style="margin-bottom:14px">
+        <h3 style="margin:0">📦 Box 1</h3>
+        <button type="button" class="btn ghost rm-box" style="display:none">✕ Remove Box</button>
+      </div>
+
+      <div class="fgrid3">
+        <div class="fg"><label>Box weight (kg) *</label>
+          <input type="number" step="0.01" min="0.01" class="box-weight" name="box[0][weight]" required></div>
+        <div class="fg"><label>Rate per kg (NPR) *</label>
+          <input type="number" step="0.01" min="0" class="box-rate" name="box[0][rate]" required></div>
+        <div class="fg"><label>Box weight charge</label>
+          <input type="text" class="box-charge-display" readonly value="NPR 0" tabindex="-1"></div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label style="font-weight:600">Items in this box</label>
+        <div class="box-items">
+          <div class="box-item-row" style="display:grid;grid-template-columns:1fr 110px 34px;gap:10px;align-items:end;margin-top:8px">
+            <div><label>Item name *</label><input name="box[0][item_name][]" required></div>
+            <div><label>Quantity *</label><input type="number" name="box[0][item_qty][]" min="1" value="1" required></div>
+            <button type="button" class="btn ghost rm-item" style="margin-bottom:1px">✕</button>
+          </div>
+        </div>
+        <button type="button" class="btn navy sm add-item" style="margin-top:8px">+ Add Item</button>
+      </div>
+
+      <div style="margin-top:16px">
+        <label style="font-weight:600">Additional charges <small style="color:var(--muted);font-weight:400">— optional, e.g. packaging, special handling</small></label>
+        <div class="box-charges"></div>
+        <button type="button" class="btn navy sm add-charge" style="margin-top:8px">+ Add Charge</button>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="btn navy" id="addBox" style="margin:10px 0 20px">+ Add Box</button>
+
+  <div class="fgrid">
+    <div class="totalbox">
+      <div class="row"><span>Total weight (all boxes)</span><span id="tWeight">0.00 kg</span></div>
+      <div class="row"><span>Weight charge (all boxes)</span><span id="tCharge">NPR 0</span></div>
+      <div class="row"><span>Additional charges (all boxes)</span><span id="tExtra">NPR 0</span></div>
+      <div class="row"><span>Customs tax (compulsory)</span><span>NPR 1,800</span></div>
+      <div class="row grand"><span>GRAND TOTAL</span><span id="tGrand">NPR 1,800</span></div>
+    </div>
+    <div class="card" style="display:grid;place-items:center">
+      <button class="btn" style="font-size:16px;padding:16px 38px">💾 Save Shipment & Generate Invoice</button>
+      <p style="color:var(--muted);font-size:13px;margin-top:12px;text-align:center">Saving creates the parcel, invoice, tracking ID and QR code together — then opens the printable invoice.</p>
+    </div>
+  </div>
+</form>
+
+<script>
+const CUSTOMS = 1800;
+const boxesContainer = document.getElementById('boxesContainer');
+let boxCounter = 1; // next index to assign when a box is added
+
+function recalc(){
+  let totalWeight = 0, totalWeightCharge = 0, totalExtra = 0;
+
+  document.querySelectorAll('.box').forEach(box => {
+    const w = parseFloat(box.querySelector('.box-weight').value) || 0;
+    const rate = parseFloat(box.querySelector('.box-rate').value) || 0;
+    const charge = w * rate;
+    let extra = 0;
+    box.querySelectorAll('.charge-price').forEach(p => extra += parseFloat(p.value) || 0);
+
+    box.querySelector('.box-charge-display').value = 'NPR ' + (charge + extra).toLocaleString(undefined, {maximumFractionDigits:0});
+
+    totalWeight += w;
+    totalWeightCharge += charge;
+    totalExtra += extra;
+  });
+
+  const grand = totalWeightCharge + totalExtra + CUSTOMS;
+  tWeight.textContent = totalWeight.toFixed(2) + ' kg';
+  tCharge.textContent = 'NPR ' + totalWeightCharge.toLocaleString(undefined, {maximumFractionDigits:0});
+  tExtra.textContent = 'NPR ' + totalExtra.toLocaleString(undefined, {maximumFractionDigits:0});
+  tGrand.textContent = 'NPR ' + grand.toLocaleString(undefined, {maximumFractionDigits:0});
+}
+
+function renameBoxFields(box, index){
+  box.dataset.boxIndex = index;
+  box.querySelectorAll('[name]').forEach(el => {
+    el.name = el.name.replace(/box\[\d+\]/, 'box[' + index + ']');
+  });
+}
+
+function bindBox(box){
+  box.querySelectorAll('.box-weight, .box-rate').forEach(i => i.addEventListener('input', recalc));
+
+  const addItemBtn = box.querySelector('.add-item');
+  const boxItems = box.querySelector('.box-items');
+  addItemBtn.onclick = () => {
+    const row = boxItems.querySelector('.box-item-row').cloneNode(true);
+    row.querySelectorAll('input').forEach(i => i.value = i.type === 'number' ? 1 : '');
+    boxItems.appendChild(row);
+    bindItemRow(row, boxItems);
+  };
+  boxItems.querySelectorAll('.box-item-row').forEach(row => bindItemRow(row, boxItems));
+
+  const addChargeBtn = box.querySelector('.add-charge');
+  const boxCharges = box.querySelector('.box-charges');
+  addChargeBtn.onclick = () => {
+    const row = document.createElement('div');
+    row.className = 'charge-row';
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 100px 120px 34px;gap:10px;align-items:end;margin-top:8px';
+    const idx = box.dataset.boxIndex;
+    row.innerHTML = `
+      <div><label>Charge / item name</label><input name="box[${idx}][charge_name][]"></div>
+      <div><label>Weight (kg)</label><input type="number" step="0.01" name="box[${idx}][charge_weight][]"></div>
+      <div><label>Price (NPR)</label><input type="number" step="0.01" class="charge-price" name="box[${idx}][charge_price][]"></div>
+      <button type="button" class="btn ghost rm-charge" style="margin-bottom:1px">✕</button>`;
+    boxCharges.appendChild(row);
+    row.querySelector('.charge-price').addEventListener('input', recalc);
+    row.querySelector('.rm-charge').onclick = () => { row.remove(); recalc(); };
+  };
+
+  const rmBoxBtn = box.querySelector('.rm-box');
+  rmBoxBtn.onclick = () => {
+    if (document.querySelectorAll('.box').length > 1) {
+      box.remove();
+      updateRemoveBoxVisibility();
+      recalc();
+    }
+  };
+}
+
+function bindItemRow(row, boxItems){
+  const rm = row.querySelector('.rm-item');
+  rm.onclick = () => { if (boxItems.children.length > 1) row.remove(); };
+}
+
+function updateRemoveBoxVisibility(){
+  const boxes = document.querySelectorAll('.box');
+  boxes.forEach(box => {
+    box.querySelector('.rm-box').style.display = boxes.length > 1 ? '' : 'none';
+  });
+}
+
+document.getElementById('addBox').onclick = () => {
+  const template = document.querySelector('.box');
+  const newBox = template.cloneNode(true);
+
+  newBox.querySelector('h3').textContent = '📦 Box ' + (boxCounter + 1);
+  renameBoxFields(newBox, boxCounter);
+  boxCounter++;
+
+  // reset values (keep box-rate and box-weight blank too, since they're manual entries)
+  newBox.querySelectorAll('input').forEach(i => {
+    if (i.classList.contains('box-charge-display')) { i.value = 'NPR 0'; return; }
+    i.value = i.type === 'number' && i.name.includes('item_qty') ? 1 : '';
+  });
+  // drop any additional-charge rows that were cloned, keep just one item row
+  newBox.querySelector('.box-charges').innerHTML = '';
+  const items = newBox.querySelector('.box-items');
+  [...items.querySelectorAll('.box-item-row')].slice(1).forEach(r => r.remove());
+
+  boxesContainer.appendChild(newBox);
+  bindBox(newBox);
+  updateRemoveBoxVisibility();
+  recalc();
+};
+
+document.querySelectorAll('.box').forEach(bindBox);
+document.getElementById('country').addEventListener('change', recalc);
+recalc();
+
+/* repeat-customer auto-fill by phone */
+let t; document.getElementById('sphone').addEventListener('input', e => {
+  clearTimeout(t);
+  t = setTimeout(async () => {
+    const r = await fetch('{% url "sender_lookup" %}?phone=' + encodeURIComponent(e.target.value));
+    const d = await r.json();
+    if (d.found) { sname.value = d.name; saddr.value = d.address; semail.value = d.email; }
+  }, 450);
+});
+</script>
+{% endblock %}
