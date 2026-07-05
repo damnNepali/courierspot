@@ -84,8 +84,10 @@ STATIC_ROOT = "/home/bishalda/courierspot.com.np/staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = "/home/bishalda/courierspot.com.np/media"
 
-
 STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
