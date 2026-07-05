@@ -1,11 +1,17 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-courierspot-dev-key-change-in-production'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
-SITE_URL = 'http://127.0.0.1:8000'  # used for QR code tracking links
+# SECRET_KEY is now read from an environment variable — set it in cPanel's
+# "Setup Python App" -> Environment Variables (never hardcode it in code)
+SECRET_KEY = os.environ.get('SECRET_KEY')
+
+DEBUG = False
+ALLOWED_HOSTS = ["courierspot.com.np", "www.courierspot.com.np"]
+
+# Used for QR code tracking links — must be your real live domain, not localhost
+SITE_URL = 'https://courierspot.com.np'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -71,10 +77,20 @@ TIME_ZONE = 'Asia/Kathmandu'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = "/home/bishalda/courierspot.com.np/staticfiles"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = "/home/bishalda/courierspot.com.np/media"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # swap for SMTP in production
+
+# CSRF: required for login/forms to work over HTTPS in production
+CSRF_TRUSTED_ORIGINS = ["https://courierspot.com.np", "https://www.courierspot.com.np"]
+
+# --- Uncomment these ONLY after your SSL certificate is active and working ---
+# If you enable these before SSL works, you'll get redirect loops and lock yourself out.
+# SECURE_SSL_REDIRECT = True
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
