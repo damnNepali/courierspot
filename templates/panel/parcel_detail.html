@@ -5,6 +5,8 @@
   <h1>{{ parcel.tracking_id }} <span class="pill pi-{{ parcel.status }}" style="vertical-align:middle">{{ parcel.get_status_display }}</span></h1>
   <div>
     <a class="btn ghost" href="{% url 'public_track' parcel.tracking_id %}" target="_blank">Public Tracking ↗</a>
+    <a class="btn ghost" href="{% url 'parcel_edit' parcel.pk %}">✏️ Edit Contact Details</a>
+    <a class="btn navy" href="{% url 'hub_invoice_excel' parcel.invoice.pk %}">📊 HUB Excel</a>
     <a class="btn" href="{% url 'invoice_print' parcel.invoice.pk %}">🖨 Invoice</a>
   </div>
 </div>
@@ -42,6 +44,17 @@
         <button class="btn navy">Save Handover</button>
       </form>
     </div>
+    {% if request.user.is_owner %}
+    <div class="card">
+      <h3>💰 Adjust Customs Tax <small style="color:var(--muted);font-weight:400">(owner only)</small></h3>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="customs">
+        <div class="fg"><label>Customs tax (NPR) — currently NPR {{ parcel.invoice.customs_tax|floatformat:2 }}</label>
+          <input type="number" step="0.01" min="0" name="customs_tax" value="{{ parcel.invoice.customs_tax|floatformat:2 }}" required></div>
+        <p style="color:var(--muted);font-size:12.5px;margin:4px 0 10px">Grand total is recalculated automatically. Items, weights and rates stay locked. The change is written to the audit log.</p>
+        <button class="btn">Update Customs Tax</button>
+      </form>
+    </div>
+    {% endif %}
   </div>
 </div>
 <div class="card">

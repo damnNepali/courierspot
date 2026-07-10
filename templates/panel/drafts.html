@@ -1,0 +1,38 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}Drafts — Courier Spot Panel{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>📝 Draft Shipments</h1>
+  <a class="btn" href="{% url 'shipment_create' %}">➕ New Shipment</a>
+</div>
+<div class="card">
+  <p style="color:var(--muted);font-size:13.5px;margin-bottom:14px">
+    Drafts are unfinished shipments — they have <b>no invoice</b>, are hidden from public
+    tracking and can be edited freely. Open one to finish it and generate the invoice.
+  </p>
+  <table>
+    <thead><tr><th>TRACKING ID</th><th>SENDER</th><th>RECEIVER</th><th>DESTINATION</th><th>BRANCH</th><th>SAVED</th><th></th></tr></thead>
+    <tbody>
+      {% for d in drafts %}
+      <tr>
+        <td><b>{{ d.tracking_id }}</b></td>
+        <td>{{ d.sender_name|default:"—" }}<br><span style="color:var(--muted);font-size:12.5px">{{ d.sender_phone }}</span></td>
+        <td>{{ d.receiver_name|default:"—" }}</td>
+        <td>{{ d.destination_country|default:"—" }}</td>
+        <td>{{ d.branch.name }}</td>
+        <td>{{ d.created_at|date:"d M Y, g:i A" }}</td>
+        <td style="white-space:nowrap">
+          <a class="btn sm" href="{% url 'draft_edit' d.pk %}">✏️ Continue</a>
+          <form method="post" action="{% url 'draft_delete' d.pk %}" style="display:inline"
+                onsubmit="return confirm('Delete draft {{ d.tracking_id }}? This cannot be undone.')">
+            {% csrf_token %}<button class="btn ghost sm">🗑</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="color:var(--muted)">No drafts — everything is finished. 🎉</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

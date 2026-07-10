@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect
 from .models import RateCard, RestrictedItem, ContactEnquiry
 from operations.models import Branch
 from tracking.models import Parcel
+from .terms import TERMS_AND_CONDITIONS
 
 
 def home(request):
@@ -19,6 +20,11 @@ def rates_page(request):
         'restricted': RestrictedItem.objects.all(),
         'branches': Branch.objects.filter(is_active=True),
     })
+
+def terms_page(request):
+    """Public Terms & Conditions page."""
+    return render(request, 'public/terms.html', {'terms': TERMS_AND_CONDITIONS})
+
 
 
 def contact_submit(request):
@@ -36,7 +42,6 @@ def contact_submit(request):
         messages.success(request, "Message sent — our team will reply soon.")
     return redirect('home')
 
-
 @login_required
 def customer_dashboard(request):
     """Customer sees every parcel matching their phone or email."""
@@ -49,5 +54,5 @@ def customer_dashboard(request):
             q |= Q(sender_phone=u.phone) | Q(receiver_phone=u.phone)
         if u.email:
             q |= Q(sender_email__iexact=u.email)
-        parcels = Parcel.objects.filter(q)
+        parcels = Parcel.objects.filter(q, is_draft=False)
     return render(request, 'public/customer_dashboard.html', {'parcels': parcels})

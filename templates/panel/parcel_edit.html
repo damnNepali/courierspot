@@ -1,0 +1,34 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}Edit {{ parcel.tracking_id }} — Courier Spot Panel{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>✏️ Edit Contact Details — {{ parcel.tracking_id }}</h1>
+  <a class="btn ghost" href="{% url 'parcel_detail' parcel.pk %}">← Back to Parcel</a>
+</div>
+<div class="card" style="background:#FFF7ED;border:1px solid #FDBA74;margin-bottom:18px">
+  <b>🔒 Items and pricing are locked.</b>
+  <span style="color:#7C4A12;font-size:13.5px">You can update names, addresses and contact
+  details here, but boxes, items, weights, rates and totals cannot be changed after saving.
+  Only the owner can adjust customs tax (from the parcel page).</span>
+</div>
+<form method="post">{% csrf_token %}
+  <div class="fgrid">
+    <div class="card">
+      <h3>📤 Sender (From)</h3>
+      <div class="fg"><label>Full Name *</label><input name="sender_name" value="{{ parcel.sender_name }}" required></div>
+      <div class="fg"><label>Phone *</label><input name="sender_phone" value="{{ parcel.sender_phone }}" required></div>
+      <div class="fg"><label>Address *</label><input name="sender_address" value="{{ parcel.sender_address }}" required></div>
+      <div class="fg"><label>Email</label><input type="email" name="sender_email" value="{{ parcel.sender_email }}"></div>
+    </div>
+    <div class="card">
+      <h3>📥 Receiver (To)</h3>
+      <div class="fg"><label>Full Name *</label><input name="receiver_name" value="{{ parcel.receiver_name }}" required></div>
+      <div class="fg"><label>Phone *</label><input name="receiver_phone" value="{{ parcel.receiver_phone }}" required></div>
+      <div class="fg"><label>Address *</label><input name="receiver_address" value="{{ parcel.receiver_address }}" required></div>
+      <div class="fg"><label>Destination Country (locked)</label>
+        <input value="{{ parcel.destination_country }}" disabled style="background:#F1F5F9"></div>
+    </div>
+  </div>
+  <button class="btn" style="margin-top:6px">💾 Save Contact Details</button>
+</form>
+{% endblock %}

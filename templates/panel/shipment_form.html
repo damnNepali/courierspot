@@ -1,26 +1,26 @@
 {% extends "panel/base_panel.html" %}
-{% block title %}New Shipment — Courier Spot Panel{% endblock %}
+{% block title %}{% if draft %}Draft {{ draft.tracking_id }}{% else %}New Shipment{% endif %} — Courier Spot Panel{% endblock %}
 {% block content %}
-<div class="topbar"><h1>New Shipment</h1></div>
+<div class="topbar"><h1>{% if draft %}✏️ Continue Draft {{ draft.tracking_id }}{% else %}New Shipment{% endif %}</h1></div>
 <form method="post" id="shipForm">{% csrf_token %}
   <div class="fgrid">
     <div class="card">
       <h3>📤 Sender (From)</h3>
       <div class="fg"><label>Phone * <small style="color:var(--muted);font-weight:400">— repeat customers auto-fill</small></label>
-        <input name="sender_phone" id="sphone" required></div>
-      <div class="fg"><label>Full Name *</label><input name="sender_name" id="sname" required></div>
-      <div class="fg"><label>Address *</label><input name="sender_address" id="saddr" required></div>
-      <div class="fg"><label>Email</label><input type="email" name="sender_email" id="semail"></div>
+        <input name="sender_phone" id="sphone" value="{{ draft.sender_phone|default:'' }}" required></div>
+      <div class="fg"><label>Full Name *</label><input name="sender_name" id="sname" value="{{ draft.sender_name|default:'' }}" required></div>
+      <div class="fg"><label>Address *</label><input name="sender_address" id="saddr" value="{{ draft.sender_address|default:'' }}" required></div>
+      <div class="fg"><label>Email</label><input type="email" name="sender_email" id="semail" value="{{ draft.sender_email|default:'' }}"></div>
     </div>
     <div class="card">
       <h3>📥 Receiver (To)</h3>
-      <div class="fg"><label>Full Name *</label><input name="receiver_name" required></div>
-      <div class="fg"><label>Phone *</label><input name="receiver_phone" required></div>
-      <div class="fg"><label>Address *</label><input name="receiver_address" required></div>
+      <div class="fg"><label>Full Name *</label><input name="receiver_name" value="{{ draft.receiver_name|default:'' }}" required></div>
+      <div class="fg"><label>Phone *</label><input name="receiver_phone" value="{{ draft.receiver_phone|default:'' }}" required></div>
+      <div class="fg"><label>Address *</label><input name="receiver_address" value="{{ draft.receiver_address|default:'' }}" required></div>
       <div class="fg"><label>Destination Country *</label>
         <select name="destination_country" id="country" required>
           <option value="">— select country —</option>
-          {% for r in rates %}<option value="{{ r.country }}" data-rate="{{ r.rate_per_kg }}">{{ r.flag }} {{ r.country }} — NPR {{ r.rate_per_kg|floatformat:0 }}/kg</option>{% endfor %}
+          {% for r in rates %}<option value="{{ r.country }}" data-rate="{{ r.rate_per_kg }}" {% if draft and draft.destination_country == r.country %}selected{% endif %}>{{ r.flag }} {{ r.country }} — NPR {{ r.rate_per_kg|floatformat:0 }}/kg</option>{% endfor %}
         </select></div>
     </div>
   </div>
@@ -67,18 +67,23 @@
       <div class="row"><span>Total weight (all boxes)</span><span id="tWeight">0.00 kg</span></div>
       <div class="row"><span>Weight charge (all boxes)</span><span id="tCharge">NPR 0</span></div>
       <div class="row"><span>Additional charges (all boxes)</span><span id="tExtra">NPR 0</span></div>
-      <div class="row"><span>Customs tax (compulsory)</span><span>NPR 1,800</span></div>
+      <div class="row" style="align-items:center"><span>Customs tax <small style="opacity:.75">(standard NPR 1,800 — adjustable)</small></span>
+        <span><input type="number" step="0.01" min="0" name="customs_tax" id="customsInput"
+          value="{% if draft and draft.draft_customs_tax is not None %}{{ draft.draft_customs_tax|floatformat:2 }}{% else %}{{ customs_tax|floatformat:2 }}{% endif %}"
+          style="width:110px;text-align:right;border-radius:8px;border:none;padding:6px 8px;font-weight:600"></span></div>
       <div class="row grand"><span>GRAND TOTAL</span><span id="tGrand">NPR 1,800</span></div>
     </div>
     <div class="card" style="display:grid;place-items:center">
-      <button class="btn" style="font-size:16px;padding:16px 38px">💾 Save Shipment & Generate Invoice</button>
-      <p style="color:var(--muted);font-size:13px;margin-top:12px;text-align:center">Saving creates the parcel, invoice, tracking ID and QR code together — then opens the printable invoice.</p>
+      <button class="btn" name="action" value="final" style="font-size:16px;padding:16px 38px">💾 Save Shipment &amp; Generate Invoice</button>
+      <button class="btn navy" name="action" value="draft" formnovalidate style="margin-top:10px">📝 Save as Draft</button>
+      <p style="color:var(--muted);font-size:13px;margin-top:12px;text-align:center">Final save creates the invoice, tracking ID and QR code together, and <b>locks items &amp; pricing permanently</b>. A draft can be edited freely and finished later from the Drafts page.</p>
     </div>
   </div>
 </form>
 
+{% if draft_json %}{{ draft_json|json_script:'draft-data' }}{% endif %}
 <script>
-const CUSTOMS = 1800;
+const customsInput = document.getElementById('customsInput');
 const boxesContainer = document.getElementById('boxesContainer');
 let boxCounter = 1; // next index to assign when a box is added
 
@@ -99,6 +104,7 @@ function recalc(){
     totalExtra += extra;
   });
 
+  const CUSTOMS = parseFloat(customsInput.value) || 0;
   const grand = totalWeightCharge + totalExtra + CUSTOMS;
   tWeight.textContent = totalWeight.toFixed(2) + ' kg';
   tCharge.textContent = 'NPR ' + totalWeightCharge.toLocaleString(undefined, {maximumFractionDigits:0});
@@ -191,6 +197,33 @@ document.getElementById('addBox').onclick = () => {
 
 document.querySelectorAll('.box').forEach(bindBox);
 document.getElementById('country').addEventListener('change', recalc);
+customsInput.addEventListener('input', recalc);
+
+/* ---- draft prefill: rebuild saved boxes/items/charges ---- */
+const draftEl = document.getElementById('draft-data');
+if (draftEl) {
+  const DRAFT = JSON.parse(draftEl.textContent);
+  (DRAFT.boxes || []).forEach((b, i) => {
+    if (i > 0) document.getElementById('addBox').click();
+    const box = document.querySelectorAll('.box')[i];
+    if (parseFloat(b.weight)) box.querySelector('.box-weight').value = b.weight;
+    if (parseFloat(b.rate)) box.querySelector('.box-rate').value = b.rate;
+    (b.items || []).forEach((it, j) => {
+      if (j > 0) box.querySelector('.add-item').click();
+      const row = box.querySelectorAll('.box-item-row')[j];
+      row.querySelector('input[name*="item_name"]').value = it.name;
+      row.querySelector('input[name*="item_qty"]').value = it.qty;
+    });
+    (b.charges || []).forEach(c => {
+      box.querySelector('.add-charge').click();
+      const rows = box.querySelectorAll('.charge-row');
+      const row = rows[rows.length - 1];
+      row.querySelector('input[name*="charge_name"]').value = c.name;
+      if (c.weight) row.querySelector('input[name*="charge_weight"]').value = c.weight;
+      row.querySelector('input[name*="charge_price"]').value = c.price;
+    });
+  });
+}
 recalc();
 
 /* repeat-customer auto-fill by phone */

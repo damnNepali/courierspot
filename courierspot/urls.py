@@ -2,6 +2,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
+from django.contrib.sitemaps.views import sitemap
+from django.http import HttpResponse
 from django.urls import path, re_path
 from django.views.static import serve
 
@@ -9,11 +11,30 @@ from accounts import views as acc
 from core import views as core_v
 from operations import views as ops
 from tracking import views as trk
+from core.sitemaps import sitemaps
+
+
+def robots_txt(request):
+    """Public pages indexed; panel/admin/API kept out of Google."""
+    return HttpResponse(
+        "User-agent: *\n"
+        "Disallow: /panel/\n"
+        "Disallow: /django-admin/\n"
+        "Disallow: /accounts/\n"
+        "Disallow: /api/\n"
+        "Disallow: /my-parcels/\n"
+        "Allow: /\n\n"
+        "Sitemap: https://courierspot.com.np/sitemap.xml\n",
+        content_type="text/plain")
+
 
 urlpatterns = [
     # public website
     path('', core_v.home, name='home'),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
+    path('robots.txt', robots_txt, name='robots_txt'),
     path('rates/', core_v.rates_page, name='rates_page'),
+    path('terms/', core_v.terms_page, name='terms_page'),
     path('contact/', core_v.contact_submit, name='contact_submit'),
     path('track/', trk.track_page, name='public_track_search'),
     path('track/<str:tracking_id>/', trk.track_page, name='public_track'),
@@ -28,10 +49,15 @@ urlpatterns = [
     # staff / SaaS panel
     path('panel/', ops.dashboard, name='panel_dashboard'),
     path('panel/shipments/new/', ops.shipment_create, name='shipment_create'),
+    path('panel/drafts/', ops.drafts, name='drafts'),
+    path('panel/drafts/<int:pk>/edit/', ops.shipment_create, name='draft_edit'),
+    path('panel/drafts/<int:pk>/delete/', ops.draft_delete, name='draft_delete'),
     path('panel/sender-lookup/', ops.sender_lookup, name='sender_lookup'),
     path('panel/parcels/', ops.parcel_list, name='parcel_list'),
     path('panel/parcels/<int:pk>/', ops.parcel_detail, name='parcel_detail'),
+    path('panel/parcels/<int:pk>/edit/', ops.parcel_edit, name='parcel_edit'),
     path('panel/invoices/<int:pk>/print/', ops.invoice_print, name='invoice_print'),
+    path('panel/invoices/<int:pk>/hub-excel/', ops.hub_invoice_excel, name='hub_invoice_excel'),
     path('panel/expenses/', ops.expenses, name='expenses'),
 
     # owner-only
@@ -46,8 +72,6 @@ urlpatterns = [
 
     # Django admin (developer backstage)
     path('django-admin/', admin.site.urls),
-
-    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
 
 if settings.DEBUG:

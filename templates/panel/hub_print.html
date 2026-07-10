@@ -1,0 +1,120 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}HUB Invoice — {{ parcel.tracking_id }}{% endblock %}
+{% block content %}
+<div class="topbar no-print">
+  <h1>HUB Invoice — {{ parcel.tracking_id }}</h1>
+  <div>
+    <a class="btn ghost" href="{% url 'parcel_detail' parcel.pk %}">← Back to Parcel</a>
+    {% if not parcel.is_draft %}<a class="btn ghost" href="{% url 'invoice_print' parcel.invoice.pk %}">Customer Invoice</a>{% endif %}
+    <a class="btn navy" href="{% url 'hub_excel' parcel.pk %}">📊 Download Excel</a>
+    <button class="btn" onclick="print()">🖨 Print HUB Invoice</button>
+  </div>
+</div>
+
+<style>
+  .hub{max-width:860px;margin:0 auto;background:#fff;border:2px solid #000;font-family:'Times New Roman',Georgia,serif;font-size:14px;color:#000}
+  .hub table{width:100%;border-collapse:collapse;font-size:14px}
+  .hub td,.hub th{border:1px solid #000;padding:4px 8px;background:#fff;color:#000;font-size:14px}
+  .hub .yellow{background:#FFFF00;font-weight:bold}
+  .hub .orange{background:#F4B183;font-weight:bold;text-align:center}
+  .hub .nb{border:none}
+  .hub .head{font-size:26px;font-weight:bold;text-align:center;letter-spacing:1px}
+  @media print{
+    .no-print,.side{display:none !important}
+    .main{margin:0 !important;padding:0 !important;max-width:100% !important}
+    .hub{border-width:2px}
+    body{background:#fff}
+  }
+</style>
+
+<div class="hub">
+  <table>
+    <!-- FROM + INVOICE header -->
+    <tr>
+      <td class="yellow" colspan="3">FROM</td>
+      <td class="yellow head" colspan="3" rowspan="2">INVOICE</td>
+    </tr>
+    <tr><td style="width:170px"><b>Name:-</b></td><td colspan="2">{{ parcel.sender_name }}</td></tr>
+    <tr>
+      <td><b>Company</b></td><td colspan="2">COURIER SPOT PVT. LTD.</td>
+      <td class="yellow" style="width:130px"><b>INVOICE NO</b></td>
+      <td colspan="2"><b>{% if parcel.is_draft %}{{ parcel.tracking_id }}{% else %}{{ parcel.invoice.invoice_no }}{% endif %}</b></td>
+    </tr>
+    <tr>
+      <td><b>Address:-</b></td><td colspan="2">{{ parcel.branch.address }}</td>
+      <td class="yellow"><b>DATE :</b></td><td colspan="2">{{ today|date:"d.m.Y" }}</td>
+    </tr>
+    <tr>
+      <td><b>City &amp; Postal code</b></td><td colspan="2">{{ parcel.branch.location }}</td>
+      <td class="yellow"><b>TOTAL WEIGHT:</b></td><td>{{ parcel.total_weight|floatformat:2 }}</td><td><b>SIZE</b></td>
+    </tr>
+    <tr>
+      <td><b>Country:-</b></td><td colspan="2">NEPAL</td>
+      <td class="yellow"><b>HAWB</b></td><td colspan="2">{{ parcel.carrier_tracking_no|default:"" }}</td>
+    </tr>
+    <tr>
+      <td><b>Tel:-</b></td><td colspan="2">{{ parcel.branch.phone }}</td>
+      <td class="yellow"><b>TOTAL BOX:-</b></td><td colspan="2">{{ total_boxes }}</td>
+    </tr>
+    <!-- TO -->
+    <tr>
+      <td class="yellow" colspan="3">TO</td>
+      <td class="yellow"><b>CARRIER</b></td><td colspan="2" style="text-align:center"><b>{% if parcel.carrier %}{{ parcel.get_carrier_display|upper }}{% else %}COURIER{% endif %}</b></td>
+    </tr>
+    <tr><td><b>Name:-</b></td><td colspan="2">{{ parcel.receiver_name }}</td><td class="nb" colspan="3"></td></tr>
+    <tr><td><b>Company</b></td><td colspan="2">{{ parcel.receiver_name }}</td><td class="nb" colspan="3"></td></tr>
+    <tr><td><b>Address:-</b></td><td colspan="2">{{ parcel.receiver_address }}</td><td class="nb" colspan="3"></td></tr>
+    <tr><td><b>Country:-</b></td><td colspan="2">{{ parcel.destination_country|upper }}</td><td class="nb" colspan="3"></td></tr>
+    <tr><td><b>Tel:-</b></td><td colspan="2">{{ parcel.receiver_phone }}</td><td class="nb" colspan="3"></td></tr>
+  </table>
+
+  <!-- goods -->
+  <table style="margin-top:-1px">
+    <tr class="yellow">
+      <th style="width:36px">SN</th>
+      <th>Description of goods</th>
+      <th style="width:60px">KG</th>
+      <th style="width:110px">COUNTRY OF<br>ORIGIN</th>
+      <th style="width:90px">PKT BOX<br>PCS</th>
+      <th style="width:100px">UNIT VALUE<br>(IN USD)</th>
+      <th style="width:90px">SUB<br>TOTAL</th>
+    </tr>
+    {% for box in boxes %}
+    <tr><td class="orange" colspan="7">BOX-{{ forloop.counter|stringformat:"02d" }}</td></tr>
+    {% for item in box.items.all %}
+    <tr>
+      <td style="text-align:center">{{ forloop.counter }}</td>
+      <td><b>{{ item.name }}</b></td>
+      <td style="text-align:center">{% if forloop.first %}{{ box.weight|floatformat:2 }}{% endif %}</td>
+      <td style="text-align:center"><b>NEPAL</b></td>
+      <td style="text-align:center"><b>{{ item.quantity }}</b></td>
+      <td style="text-align:center"><b>{{ item.unit_value_usd|floatformat:"-2" }}</b></td>
+      <td style="text-align:center"><b>{{ item.subtotal_usd|floatformat:"-2" }}</b></td>
+    </tr>
+    {% endfor %}
+    {% endfor %}
+    <tr>
+      <td class="nb" colspan="3"></td>
+      <td class="yellow" style="text-align:center"><b>TOTAL QTY</b></td>
+      <td class="yellow" style="text-align:center"><b>{{ total_qty }}</b></td>
+      <td class="yellow" style="text-align:center"><b>TOTAL VALUE</b></td>
+      <td class="yellow" style="text-align:center"><b>{{ total_value|floatformat:"-2" }}</b></td>
+    </tr>
+  </table>
+
+  <!-- declarations -->
+  <table style="margin-top:-1px">
+    <tr><td class="nb" style="padding:6px 8px"><b>IN WORDS (USD): {{ value_words }}</b></td></tr>
+    <tr><td style="padding:4px 8px"><b>REASON FOR EXPORT: I DECLARE THAT ABOVE GOODS ARE FOR GIFT PURPOSE AND PERSONAL USE</b></td></tr>
+    <tr><td style="padding:4px 8px"><b>DECLARED GOODS VALUE IS ONLY FOR CUSTOMS PURPOSE</b></td></tr>
+    <tr><td style="padding:4px 8px"><b>TERMS OF DELIVERY : PREPAID</b></td></tr>
+  </table>
+
+  <!-- signature -->
+  <table style="margin-top:-1px">
+    <tr><td class="nb" style="width:60%"></td><td style="width:110px"><b>Name</b></td><td><b>{{ parcel.sender_name|upper }}</b></td></tr>
+    <tr><td class="nb"></td><td><b>Date</b></td><td>{{ today|date:"d.m.Y" }}</td></tr>
+    <tr><td class="nb" style="height:44px"></td><td><b>SIGNATURE:</b></td><td></td></tr>
+  </table>
+</div>
+{% endblock %}

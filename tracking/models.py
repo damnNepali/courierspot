@@ -18,7 +18,7 @@ class Parcel(models.Model):
         EXPORT_CUSTOMS = 'EXPORT_CUSTOMS', '🛃 Export Customs Clearance'
         DEPARTED = 'DEPARTED', '✈️ Departed from Nepal'
         IN_TRANSIT = 'IN_TRANSIT', '🌍 In Transit'
-        ARRIVED_DEST = 'ARRIVED_DEST', '🇬🇧 Arrived at Destination Country'
+        ARRIVED_DEST = 'ARRIVED_DEST', 'Arrived at Destination Country'
         IMPORT_CUSTOMS = 'IMPORT_CUSTOMS', '🛃 Import Customs Clearance'
         TRANSFERRED_LOCAL = 'TRANSFERRED_LOCAL', '🚛 Transferred to Local Delivery Partner'
         OUT_FOR_DELIVERY = 'OUT_FOR_DELIVERY', '🚚 Out for Delivery'
@@ -50,6 +50,14 @@ class Parcel(models.Model):
     qr_code = models.ImageField(upload_to='qr/', blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Draft support: a draft has NO invoice, NO tracking events and is hidden
+    # from public tracking. Finalising it creates the invoice and locks pricing.
+    is_draft = models.BooleanField(default=False)
+    # Customs tax typed while the shipment was still a draft, so it is
+    # remembered when the draft is reopened (moves onto the Invoice at finalise).
+    draft_customs_tax = models.DecimalField(max_digits=12, decimal_places=2,
+                                            null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']

@@ -80,6 +80,15 @@
     </div>
   </div>
 
+  <!-- terms & conditions (small print) -->
+  <div style="border-top:1px solid #E3E8EF;padding-top:12px;margin-top:6px">
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:1px;color:#0B2545;margin-bottom:4px">TERMS AND CONDITIONS</div>
+    <ol style="margin:0;padding-left:16px;color:#64748B;font-size:8.5px;line-height:1.55;font-style:italic">
+      {% for t in terms %}<li>{{ t }}</li>{% endfor %}
+    </ol>
+    <div style="font-size:8.5px;color:#94A3B8;margin-top:4px">Full terms: courierspot.com.np/terms</div>
+  </div>
+
   <!-- signatures -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:46px">
     <div style="border-top:1.5px solid #1A2433;padding-top:8px;font-size:13px"><b>Branch Manager Signature</b><br><span style="color:#64748B">{{ inv.branch.name }}</span></div>

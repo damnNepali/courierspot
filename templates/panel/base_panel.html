@@ -79,6 +79,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--crimson)}
   <nav>
     <a href="{% url 'panel_dashboard' %}" class="{% if request.resolver_match.url_name == 'panel_dashboard' %}active{% endif %}">📊 Dashboard</a>
     <a href="{% url 'shipment_create' %}" class="{% if request.resolver_match.url_name == 'shipment_create' %}active{% endif %}">➕ New Shipment</a>
+    <a href="{% url 'drafts' %}" class="{% if request.resolver_match.url_name == 'drafts' or request.resolver_match.url_name == 'draft_edit' %}active{% endif %}">📝 Drafts</a>
     <a href="{% url 'parcel_list' %}" class="{% if request.resolver_match.url_name == 'parcel_list' %}active{% endif %}">📦 Parcels</a>
     <a href="{% url 'expenses' %}" class="{% if request.resolver_match.url_name == 'expenses' %}active{% endif %}">🧾 Expenses</a>
     {% if user.is_owner %}

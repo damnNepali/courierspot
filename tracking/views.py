@@ -30,7 +30,7 @@ def build_timeline(parcel):
 def track_page(request, tracking_id=''):
     """Public tracking page — also the target of the invoice QR code."""
     tid = tracking_id or request.GET.get('id', '')
-    parcel = Parcel.objects.filter(tracking_id__iexact=tid.strip()).first() if tid else None
+    parcel = Parcel.objects.filter(tracking_id__iexact=tid.strip(), is_draft=False).first() if tid else None
     return render(request, 'public/track.html', {
         'parcel': parcel,
         'searched': bool(tid),
@@ -45,7 +45,7 @@ class TrackParcelAPI(APIView):
     permission_classes = []
 
     def get(self, request, tracking_id):
-        parcel = Parcel.objects.filter(tracking_id__iexact=tracking_id).first()
+        parcel = Parcel.objects.filter(tracking_id__iexact=tracking_id, is_draft=False).first()
         if not parcel:
             return Response({'found': False}, status=404)
         return Response({

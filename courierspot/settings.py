@@ -1,16 +1,37 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECRET_KEY is now read from an environment variable — set it in cPanel's
-# "Setup Python App" -> Environment Variables (never hardcode it in code)
+# ---------------------------------------------------------------------------
+# Environment detection (filesystem-based — no env variables needed).
+# The cPanel home directory only exists on the live server, so:
+#   on the server  -> production mode (DEBUG off, full security on)
+#   on your laptop -> development mode (DEBUG on, runs with plain runserver)
+# ---------------------------------------------------------------------------
+CPANEL_HOME = Path('/home/bishalda')
+IS_PRODUCTION = CPANEL_HOME.exists()
+
+DEBUG = not IS_PRODUCTION
+
+# SECRET_KEY comes from cPanel "Setup Python App" -> Environment Variables.
+# In production the app REFUSES to start without it (never fall back to a
+# known key on the live site — that would let anyone forge session cookies).
 SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if IS_PRODUCTION:
+        raise ImproperlyConfigured(
+            'SECRET_KEY environment variable is not set. '
+            'Add it in cPanel -> Setup Python App -> Environment Variables.')
+    SECRET_KEY = 'dev-only-insecure-key'
 
-DEBUG = False
 ALLOWED_HOSTS = ["courierspot.com.np", "www.courierspot.com.np"]
+if DEBUG:
+    ALLOWED_HOSTS += ["127.0.0.1", "localhost"]
 
-# Used for QR code tracking links — must be your real live domain, not localhost
+# Used for QR code tracking links — must be the real live domain, not localhost
 SITE_URL = 'https://courierspot.com.np'
 
 INSTALLED_APPS = [
@@ -69,8 +90,12 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/accounts/redirect/'
 LOGOUT_REDIRECT_URL = '/'
 
+# Stronger password rules — applies to NEW passwords only;
+# existing accounts keep working and are not affected.
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 6}},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
 ]
 
 LANGUAGE_CODE = 'en-us'
@@ -80,27 +105,60 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = "/home/bishalda/courierspot.com.np/staticfiles"
+
+if IS_PRODUCTION:
+    STATIC_ROOT = "/home/bishalda/courierspot.com.np/staticfiles"
+    MEDIA_ROOT = "/home/bishalda/courierspot.com.np/media"
+else:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
+    MEDIA_ROOT = BASE_DIR / "media"
+
 MEDIA_URL = "/media/"
-MEDIA_ROOT = "/home/bishalda/courierspot.com.np/media"
 
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        # Local: plain storage so runserver works without collectstatic.
+        # Production: WhiteNoise compressed + hashed files (cache-safe).
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if IS_PRODUCTION
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
     },
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # swap for SMTP in production
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # swap for SMTP later
 
 # CSRF: required for login/forms to work over HTTPS in production
 CSRF_TRUSTED_ORIGINS = ["https://courierspot.com.np", "https://www.courierspot.com.np"]
 
-# --- Uncomment these ONLY after your SSL certificate is active and working ---
-# If you enable these before SSL works, you'll get redirect loops and lock yourself out.
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
+# ---------------------------------------------------------------------------
+# Production security hardening — only active on the live server
+# ---------------------------------------------------------------------------
+if IS_PRODUCTION:
+    # Cookies only ever travel over HTTPS and are invisible to JavaScript
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+
+    # Staff sessions expire after 24 hours instead of Django's 2-week default
+    SESSION_COOKIE_AGE = 60 * 60 * 24
+
+    # Browser-level protections
+    SECURE_CONTENT_TYPE_NOSNIFF = True      # stop MIME-type sniffing attacks
+    SECURE_REFERRER_POLICY = 'same-origin'  # don't leak URLs to other sites
+    X_FRAME_OPTIONS = 'DENY'                # nobody can embed the site in an iframe
+
+    # Tell browsers to always use HTTPS for this domain (starts at 1 hour;
+    # once you're confident everything works, raise to 31536000 = 1 year)
+    SECURE_HSTS_SECONDS = 3600
+
+    # NOTE: HTTP -> HTTPS redirect is normally handled by cPanel/Apache itself.
+    # Only uncomment this if plain http:// pages are still reachable:
+    # SECURE_SSL_REDIRECT = True

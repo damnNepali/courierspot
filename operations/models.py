@@ -39,6 +39,11 @@ class Invoice(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+    @property
+    def subtotal(self):
+        """Weight + additional charges, before customs tax."""
+        return self.weight_charge + self.additional_charges_total
+
     def __str__(self):
         return self.invoice_no
 
@@ -50,7 +55,6 @@ class InvoiceItem(models.Model):
 
     def __str__(self):
         return f"{self.name} ×{self.quantity}"
-
 
 class Expense(models.Model):
     CATEGORIES = [('FUEL', 'Fuel / Transport'), ('RENT', 'Rent'), ('SALARY', 'Salary'),
@@ -115,10 +119,15 @@ class BoxItem(models.Model):
     box = models.ForeignKey(Box, on_delete=models.CASCADE, related_name='items')
     name = models.CharField(max_length=160)
     quantity = models.PositiveIntegerField(default=1)
+    unit_value_usd = models.DecimalField(max_digits=10, decimal_places=2,
+                                         default=Decimal('0.00'))
+
+    @property
+    def subtotal_usd(self):
+        return (self.unit_value_usd * self.quantity).quantize(Decimal('0.01'))
 
     def __str__(self):
         return f"{self.name} ×{self.quantity}"
-
 
 class BoxCharge(models.Model):
     box = models.ForeignKey(Box, on_delete=models.CASCADE, related_name='charges')

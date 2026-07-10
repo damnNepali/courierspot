@@ -1,12 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{% block title %}Courier Spot — International Courier from Nepal{% endblock %}</title>
+<title>{% block title %}Courier Spot — International Courier Service from Nepal | On Time, Everytime{% endblock %}</title>
+<meta name="description" content="{% block meta_description %}Courier Spot Pvt. Ltd. — trusted international courier service from Kathmandu, Nepal. Ship parcels worldwide via FedEx, DHL Express, Aramex, SkyNet & DPD. Live parcel tracking, transparent per-kg rates, doorstep delivery to USA, UK, Australia, Europe and more.{% endblock %}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://courierspot.com.np{{ request.path }}">
+
+<!-- Open Graph (Facebook / WhatsApp / Messenger link previews) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Courier Spot">
+<meta property="og:title" content="Courier Spot — International Courier Service from Nepal">
+<meta property="og:description" content="Ship parcels worldwide from Nepal with live tracking. FedEx · DHL Express · Aramex · SkyNet · DPD. On Time, Everytime.">
+<meta property="og:url" content="https://courierspot.com.np{{ request.path }}">
+<meta property="og:image" content="https://courierspot.com.np{% static '10.png' %}">
+<meta name="twitter:card" content="summary">
+
+!-- Structured data: tells Google this is a real local shipping business -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "@id": "https://courierspot.com.np/#business",
+  "name": "Courier Spot Pvt. Ltd.",
+  "alternateName": "Courier Spot",
+  "slogan": "On Time, Everytime",
+  "description": "International courier and cargo service from Nepal. Worldwide parcel shipping via FedEx, DHL Express, Aramex, SkyNet and DPD with live tracking.",
+  "url": "https://courierspot.com.np",
+  "logo": "https://courierspot.com.np{% static '10.png' %}",
+  "image": "https://courierspot.com.np{% static '10.png' %}",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Kathmandu",
+    "addressCountry": "NP"
+  },
+  "areaServed": "Worldwide",
+  "knowsAbout": ["international courier Nepal", "parcel shipping Nepal", "cargo service Kathmandu", "send parcel from Nepal"],
+  "sameAs": []
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
+
+  <style>
 :root{
   --bg:#0A0C10; --panel:#101216; --card:#16191E; --border:#21262D;
   --orange:#EE4413; --orange-light:#FF8C5A; --navy:#182030;
@@ -274,6 +312,7 @@ footer{border-top:1px solid var(--border);padding:70px 0 36px;background:var(--b
           <li><a href="/#track">Track Parcel</a></li>
           <li><a href="/#coverage">Coverage Map</a></li>
           <li><a href="{% url 'rates_page' %}">Rates</a></li>
+          <li><a href="{% url 'terms_page' %}">Terms &amp; Conditions</a></li>
           <li><a href="/#contact">Contact</a></li>
         </ul>
       </div>
