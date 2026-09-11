@@ -9,6 +9,7 @@ from django.db.models import Q, Sum
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.core.paginator import Paginator
 
 from accounts.forms import StaffCreateForm
 from accounts.models import User
@@ -55,12 +56,18 @@ def dashboard(request):
     parcels = branch_scope(Parcel.objects.filter(is_draft=False), request.user)
     invoices = branch_scope(Invoice.objects.all(), request.user)
     drafts = branch_scope(Parcel.objects.filter(is_draft=True), request.user)
+    # Pagination for recent parcels
+    recent_parcels = parcels.select_related('branch').order_by('-created_at')
+
+    paginator = Paginator(recent_parcels, 15)
+    page_number = request.GET.get('page')
+    recent = paginator.get_page(page_number)
     ctx = {
         'today_parcels': parcels.filter(created_at__date=today).count(),
         'total_parcels': parcels.count(),
         'in_transit': parcels.filter(status=Parcel.Status.IN_TRANSIT).count(),
         'today_income': invoices.filter(created_at__date=today).aggregate(s=Sum('grand_total'))['s'] or 0,
-        'recent': parcels.select_related('branch')[:8],
+        'recent': recent,
         'draft_count': drafts.count(),
         'enquiries': ContactEnquiry.objects.filter(is_resolved=False)[:5] if request.user.is_owner else None,
     }
@@ -274,18 +281,58 @@ def sender_lookup(request):
 
 # ---------- parcels ----------
 
+# @panel_required
+# def parcel_list(request):
+#     q = request.GET.get('q', '').strip()
+#     parcels = branch_scope(Parcel.objects.filter(is_draft=False)
+#                            .select_related('branch', 'invoice'), request.user)
+#     if q:
+#         parcels = parcels.filter(
+#             Q(tracking_id__icontains=q) | Q(sender_phone__icontains=q) |
+#             Q(sender_name__icontains=q) | Q(receiver_name__icontains=q) |
+#             Q(invoice__invoice_no__icontains=q))
+#     return render(request, 'panel/parcel_list.html', {'parcels': parcels[:100], 'q': q})
+
 @panel_required
 def parcel_list(request):
+
     q = request.GET.get('q', '').strip()
-    parcels = branch_scope(Parcel.objects.filter(is_draft=False)
-                           .select_related('branch', 'invoice'), request.user)
+
+    parcels = branch_scope(
+        Parcel.objects
+        .filter(is_draft=False)
+        .select_related('branch', 'invoice'),
+        request.user
+    )
+
+    # Search
     if q:
         parcels = parcels.filter(
-            Q(tracking_id__icontains=q) | Q(sender_phone__icontains=q) |
-            Q(sender_name__icontains=q) | Q(receiver_name__icontains=q) |
-            Q(invoice__invoice_no__icontains=q))
-    return render(request, 'panel/parcel_list.html', {'parcels': parcels[:100], 'q': q})
+            Q(tracking_id__icontains=q)
+            | Q(sender_phone__icontains=q)
+            | Q(sender_name__icontains=q)
+            | Q(receiver_name__icontains=q)
+            | Q(invoice__invoice_no__icontains=q)
+        )
 
+    # Newest parcels first
+    parcels = parcels.order_by('-created_at')
+
+    # Pagination - 20 parcels per page
+    paginator = Paginator(parcels, 100)
+
+    page_number = request.GET.get('page')
+
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        'panel/parcel_list.html',
+        {
+            'parcels': page_obj,
+            'q': q,
+        }
+    )
 
 @panel_required
 def parcel_detail(request, pk):
@@ -335,6 +382,7 @@ def parcel_detail(request, pk):
                               f'NPR {inv.customs_tax} (grand total NPR {inv.grand_total})')
             messages.success(request, f'Customs tax updated to NPR {inv.customs_tax}.')
         return redirect('parcel_detail', pk=pk)
+    
     return render(request, 'panel/parcel_detail.html',
                   {'parcel': parcel, 'statuses': Parcel.Status.choices, 'carriers': Parcel.CARRIERS})
 

@@ -1,6 +1,88 @@
 {% extends "panel/base_panel.html" %}
 {% block title %}{{ parcel.tracking_id }} — Courier Spot Panel{% endblock %}
 {% block content %}
+<style>
+    /* ================================
+       Dashboard Pagination
+    ================================= */
+
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+    }
+
+    .pagination-left {
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    .pagination-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .page-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        min-width: 36px;
+        height: 36px;
+        padding: 0 12px;
+
+        border: 1px solid var(--border);
+        border-radius: 8px;
+
+        background: var(--card);
+        color: inherit;
+
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+
+        transition: all 0.2s ease;
+    }
+
+    .page-btn:hover {
+        background: var(--bg);
+        border-color: currentColor;
+        transform: translateY(-1px);
+    }
+
+    .page-btn.disabled {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+    .page-info {
+        padding: 0 8px;
+        color: var(--muted);
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    /* ================================
+       Responsive Pagination
+    ================================= */
+
+    @media (max-width: 600px) {
+        .pagination {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .pagination-right {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+</style>
 <div class="topbar">
   <h1>{{ parcel.tracking_id }} <span class="pill pi-{{ parcel.status }}" style="vertical-align:middle">{{ parcel.get_status_display }}</span></h1>
   <div>

@@ -1,36 +1,440 @@
 {% extends "panel/base_panel.html" %}
-{% block title %}Dashboard — courier spot Panel{% endblock %}
+
+{% block title %}
+Dashboard — Courier Spot Panel
+{% endblock %}
+
 {% block content %}
+
+<style>
+    /* ================================
+       Dashboard Pagination
+    ================================= */
+
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+    }
+
+    .pagination-left {
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    .pagination-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .page-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        min-width: 36px;
+        height: 36px;
+        padding: 0 12px;
+
+        border: 1px solid var(--border);
+        border-radius: 8px;
+
+        background: var(--card);
+        color: inherit;
+
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+
+        transition: all 0.2s ease;
+    }
+
+    .page-btn:hover {
+        background: var(--bg);
+        border-color: currentColor;
+        transform: translateY(-1px);
+    }
+
+    .page-btn.disabled {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+    .page-info {
+        padding: 0 8px;
+        color: var(--muted);
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    /* ================================
+       Responsive Pagination
+    ================================= */
+
+    @media (max-width: 600px) {
+        .pagination {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .pagination-right {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+</style>
+
+
+<!-- ================================
+     TOP BAR
+================================= -->
+
 <div class="topbar">
-  <h1>Dashboard</h1>
-  <a class="btn" href="{% url 'shipment_create' %}">+ New Shipment</a>
+
+    <h1>Dashboard</h1>
+
+    <a class="btn" href="{% url 'shipment_create' %}">
+        + New Shipment
+    </a>
+
 </div>
+
+
+<!-- ================================
+     STATISTICS
+================================= -->
+
 <div class="stats">
-  <div class="stat"><div class="n">{{ today_parcels }}</div><div class="l">Parcels Today</div></div>
-  <div class="stat"><div class="n red">{{ in_transit }}</div><div class="l">In Transit</div></div>
-  <div class="stat"><div class="n gold">NPR {{ today_income|floatformat:0 }}</div><div class="l">Income Today</div></div>
-  <div class="stat"><div class="n green">{{ total_parcels }}</div><div class="l">Total Parcels</div></div>
+
+    <!-- Parcels Today -->
+    <div class="stat">
+        <div class="n">
+            {{ today_parcels }}
+        </div>
+
+        <div class="l">
+            Parcels Today
+        </div>
+    </div>
+
+
+    <!-- In Transit -->
+    <div class="stat">
+
+        <div class="n red">
+            {{ in_transit }}
+        </div>
+
+        <div class="l">
+            In Transit
+        </div>
+
+    </div>
+
+
+    <!-- Income Today -->
+    <div class="stat">
+
+        <div class="n gold">
+            NPR {{ today_income|floatformat:0 }}
+        </div>
+
+        <div class="l">
+            Income Today
+        </div>
+
+    </div>
+
+
+    <!-- Total Parcels -->
+    <div class="stat">
+
+        <div class="n green">
+            {{ total_parcels }}
+        </div>
+
+        <div class="l">
+            Total Parcels
+        </div>
+
+    </div>
+
 </div>
+
+
+<!-- ================================
+     RECENT PARCELS
+================================= -->
+
 <div class="card">
-  <h3>Recent Parcels</h3>
-  <table>
-    <thead><tr><th>TRACKING ID</th><th>SENDER</th><th>DESTINATION</th><th>BRANCH</th><th>STATUS</th><th>DATE</th></tr></thead>
-    <tbody>
-      {% for p in recent %}
-      <tr onclick="location='{% url 'parcel_detail' p.pk %}'" style="cursor:pointer">
-        <td><b>{{ p.tracking_id }}</b></td><td>{{ p.sender_name }}</td><td>{{ p.destination_country }}</td>
-        <td>{{ p.branch.name }}</td><td><span class="pill pi-{{ p.status }}">{{ p.get_status_display }}</span></td>
-        <td>{{ p.created_at|date:"d M, g:i A" }}</td></tr>
-      {% empty %}<tr><td colspan="6" style="text-align:center;color:var(--muted)">No parcels yet — create your first shipment.</td></tr>{% endfor %}
-    </tbody>
-  </table>
+
+    <h3>Recent Parcels</h3>
+
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>TRACKING ID</th>
+                <th>SENDER</th>
+                <th>RECEIVER</th>
+                <th>DESTINATION</th>
+                <th>BRANCH</th>
+                <th>STATUS</th>
+                <th>DATE</th>
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for p in recent %}
+
+            <tr
+                onclick="location='{% url 'parcel_detail' p.pk %}'"
+                style="cursor: pointer;"
+            >
+
+                <td>
+                    <b>{{ p.tracking_id }}</b>
+                </td>
+
+                <td>
+                    {{ p.sender_name }}
+                </td>
+
+                <td>
+                    {{ p.receiver_name }}
+                </td>
+
+                <td>
+                    {{ p.destination_country }}
+                </td>
+
+                <td>
+                    {{ p.branch.name }}
+                </td>
+
+                <td>
+                    <span class="pill pi-{{ p.status }}">
+                        {{ p.get_status_display }}
+                    </span>
+                </td>
+
+                <td>
+                    {{ p.created_at|date:"d M, g:i A" }}
+                </td>
+
+            </tr>
+
+
+            {% empty %}
+
+            <tr>
+
+                <td
+                    colspan="7"
+                    style="text-align: center; color: var(--muted);"
+                >
+                    No parcels yet — create your first shipment.
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+
+    <!-- ================================
+         PAGINATION
+    ================================= -->
+
+    {% if recent.has_other_pages %}
+
+    <div class="pagination">
+
+        <!-- Pagination Information -->
+
+        <div class="pagination-left">
+
+            Showing
+
+            <strong>
+                {{ recent.start_index }}
+            </strong>
+
+            –
+
+            <strong>
+                {{ recent.end_index }}
+            </strong>
+
+            of
+
+            <strong>
+                {{ recent.paginator.count }}
+            </strong>
+
+            parcels
+
+        </div>
+
+
+        <!-- Pagination Controls -->
+
+        <div class="pagination-right">
+
+
+            <!-- Previous Button -->
+
+            {% if recent.has_previous %}
+
+                <a
+                    href="?page={{ recent.previous_page_number }}"
+                    class="page-btn"
+                    aria-label="Previous page"
+                >
+                    ←
+                </a>
+
+            {% else %}
+
+                <span
+                    class="page-btn disabled"
+                    aria-disabled="true"
+                >
+                    ←
+                </span>
+
+            {% endif %}
+
+
+            <!-- Current Page -->
+
+            <span class="page-info">
+
+                Page
+                {{ recent.number }}
+                of
+                {{ recent.paginator.num_pages }}
+
+            </span>
+
+
+            <!-- Next Button -->
+
+            {% if recent.has_next %}
+
+                <a
+                    href="?page={{ recent.next_page_number }}"
+                    class="page-btn"
+                    aria-label="Next page"
+                >
+                    →
+                </a>
+
+            {% else %}
+
+                <span
+                    class="page-btn disabled"
+                    aria-disabled="true"
+                >
+                    →
+                </span>
+
+            {% endif %}
+
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
 </div>
+
+
+<!-- ================================
+     WEBSITE ENQUIRIES
+================================= -->
+
 {% if enquiries %}
-<div class="card"><h3>Unresolved Website Enquiries</h3>
-  <table><thead><tr><th>FROM</th><th>TRACKING NO.</th><th>MESSAGE</th><th>DATE</th></tr></thead><tbody>
-  {% for e in enquiries %}<tr><td>{{ e.name }}<br><small style="color:var(--muted)">{{ e.email }}</small></td>
-  <td>{{ e.tracking_number|default:"—" }}</td><td>{{ e.message|truncatechars:80 }}</td><td>{{ e.created_at|date:"d M" }}</td></tr>{% endfor %}
-  </tbody></table>
+
+<div class="card">
+
+    <h3>
+        Unresolved Website Enquiries
+    </h3>
+
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>FROM</th>
+                <th>TRACKING NO.</th>
+                <th>MESSAGE</th>
+                <th>DATE</th>
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for e in enquiries %}
+
+            <tr>
+
+                <td>
+
+                    {{ e.name }}
+
+                    <br>
+
+                    <small style="color: var(--muted);">
+                        {{ e.email }}
+                    </small>
+
+                </td>
+
+
+                <td>
+                    {{ e.tracking_number|default:"—" }}
+                </td>
+
+
+                <td>
+                    {{ e.message|truncatechars:80 }}
+                </td>
+
+
+                <td>
+                    {{ e.created_at|date:"d M" }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
 </div>
+
 {% endif %}
+
+
 {% endblock %}

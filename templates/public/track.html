@@ -31,8 +31,8 @@
           <div class="tdot">{% if step.done %}✓{% endif %}</div>
           <div>
             <h4>{{ step.label }}</h4>
-            <p>{% if step.when %}{{ step.location }} · {{ step.when|date:"d M Y, g:i A" }}{% if step.note %} — {{ step.note }}{% endif %}
-               {% else %}Pending{% endif %}</p>
+            {% comment %} <p>{% if step.when %}{{ step.location }} · {{ step.when|date:"d M Y, g:i A" }}{% if step.note %} — {{ step.note }}{% endif %}
+               {% else %}Pending{% endif %}</p> {% endcomment %}
           </div>
         </div>
         {% endfor %}
