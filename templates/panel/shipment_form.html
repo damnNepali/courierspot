@@ -17,6 +17,8 @@
       <div class="fg"><label>Full Name *</label><input name="receiver_name" value="{{ draft.receiver_name|default:'' }}" required></div>
       <div class="fg"><label>Phone *</label><input name="receiver_phone" value="{{ draft.receiver_phone|default:'' }}" required></div>
       <div class="fg"><label>Address *</label><input name="receiver_address" value="{{ draft.receiver_address|default:'' }}" required></div>
+      <div class="fg"><label>Gmail/Email *</label><input name="receiver_email" value="{{ draft.receiver_email|default:'' }}" required></div>
+
       <div class="fg"><label>Destination Country *</label>
         <select name="destination_country" id="country" required>
           <option value="">— select country —</option>

@@ -66,6 +66,8 @@
     <tr><td><b>Address:-</b></td><td colspan="2">{{ parcel.receiver_address }}</td><td class="nb" colspan="3"></td></tr>
     <tr><td><b>Country:-</b></td><td colspan="2">{{ parcel.destination_country|upper }}</td><td class="nb" colspan="3"></td></tr>
     <tr><td><b>Tel:-</b></td><td colspan="2">{{ parcel.receiver_phone }}</td><td class="nb" colspan="3"></td></tr>
+    <tr><td><b>Email:-</b></td><td colspan="2">{{ parcel.receiver_email|default:"" }}</td><td class="nb" colspan="3"></td>
+</tr>
   </table>
 
   <!-- goods -->

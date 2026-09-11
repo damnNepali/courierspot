@@ -57,7 +57,7 @@ class InvoiceItem(models.Model):
         return f"{self.name} ×{self.quantity}"
 
 class Expense(models.Model):
-    CATEGORIES = [('FUEL', 'Fuel / Transport'), ('RENT', 'Rent'), ('SALARY', 'Salary'),
+    CATEGORIES = [('FUEL', 'Fuel / Transport'), ('RENT', 'Rent'), ('SALARY', 'Salary'),('HUB', 'HUB'),
                   ('CARRIER', 'Carrier Charges'), ('SUPPLIES', 'Supplies'), ('OTHER', 'Other')]
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name='expenses')
     description = models.CharField(max_length=255)

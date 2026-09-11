@@ -26,7 +26,7 @@ class Parcel(models.Model):
         CANCELLED = 'CANCELLED', 'Cancelled'
 
     CARRIERS = [('FEDEX', 'FedEx'), ('DHL', 'DHL Express'), ('ARAMEX', 'Aramex'),
-                ('SKYNET', 'SkyNet'), ('DPD', 'DPD')]
+                ('JFK', 'JFK'), ('DPD', 'DPD'),('UPS', 'UPS'),('LHR', 'LHR'),('AMS', 'AMS'),]
 
     tracking_id = models.CharField(max_length=20, unique=True, editable=False)
     branch = models.ForeignKey('operations.Branch', on_delete=models.PROTECT, related_name='parcels')
@@ -42,6 +42,8 @@ class Parcel(models.Model):
     receiver_phone = models.CharField(max_length=30)
     receiver_address = models.CharField(max_length=255)
     destination_country = models.CharField(max_length=80)
+    receiver_email = models.EmailField(blank=True)
+
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ORDER_CREATED)
     carrier = models.CharField(max_length=10, choices=CARRIERS, blank=True)

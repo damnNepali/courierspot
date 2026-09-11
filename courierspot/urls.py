@@ -53,6 +53,7 @@ urlpatterns = [
     path('panel/drafts/<int:pk>/edit/', ops.shipment_create, name='draft_edit'),
     path('panel/drafts/<int:pk>/delete/', ops.draft_delete, name='draft_delete'),
     path('panel/sender-lookup/', ops.sender_lookup, name='sender_lookup'),
+    path('panel/receiver-lookup/', ops.receiver_lookup, name='receiver_lookup'),
     path('panel/parcels/', ops.parcel_list, name='parcel_list'),
     path('panel/parcels/<int:pk>/', ops.parcel_detail, name='parcel_detail'),
     path('panel/parcels/<int:pk>/edit/', ops.parcel_edit, name='parcel_edit'),

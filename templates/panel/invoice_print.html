@@ -32,12 +32,12 @@
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px">
     <div style="border:1px solid #E3E8EF;border-radius:10px;padding:16px">
       <div style="font-size:11px;letter-spacing:1px;color:#64748B;margin-bottom:6px">FROM (SENDER)</div>
-      <b>{{ inv.parcel.sender_name }}</b><br>{{ inv.parcel.sender_phone }}<br>
+      <b>{{ inv.parcel.sender_name }}</b><br>{{ inv.parcel.sender_phone }}<br>{{ inv.parcel.sender_email }}<br>
       <span style="font-size:13.5px">{{ inv.parcel.sender_address }}</span>
     </div>
     <div style="border:1px solid #E3E8EF;border-radius:10px;padding:16px">
       <div style="font-size:11px;letter-spacing:1px;color:#64748B;margin-bottom:6px">TO (RECEIVER)</div>
-      <b>{{ inv.parcel.receiver_name }}</b><br>{{ inv.parcel.receiver_phone }}<br>
+      <b>{{ inv.parcel.receiver_name }}</b><br>{{ inv.parcel.receiver_phone }}<br>{{ inv.parcel.receiver_email }}<br><br>
       <span style="font-size:13.5px">{{ inv.parcel.receiver_address }}, <b>{{ inv.parcel.destination_country }}</b></span>
     </div>
   </div>

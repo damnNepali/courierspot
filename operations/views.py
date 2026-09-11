@@ -139,7 +139,9 @@ def _fill_parcel_fields(parcel, post):
     parcel.sender_email = post.get('sender_email', '').strip()
     parcel.receiver_name = post.get('receiver_name', '').strip()
     parcel.receiver_phone = post.get('receiver_phone', '').strip()
+    parcel.receiver_email = post.get('receiver_email', '').strip()
     parcel.receiver_address = post.get('receiver_address', '').strip()
+    parcel.receiver_email = post.get('receiver_email', '').strip()
     parcel.destination_country = post.get('destination_country', '').strip()
 
 
@@ -277,7 +279,31 @@ def sender_lookup(request):
         return JsonResponse({'found': False})
     return JsonResponse({'found': True, 'name': p.sender_name,
                          'address': p.sender_address, 'email': p.sender_email})
+@panel_required
+def receiver_lookup(request):
+    """Auto-fill: if this phone has received before, return their details."""
 
+    phone = request.GET.get('phone', '').strip()
+
+    p = (
+        Parcel.objects
+        .filter(receiver_phone=phone)
+        .order_by('-created_at')
+        .first()
+        if phone else None
+    )
+
+    if not p:
+        return JsonResponse({
+            'found': False
+        })
+
+    return JsonResponse({
+        'found': True,
+        'name': p.receiver_name,
+        'address': p.receiver_address,
+        'email': p.receiver_email,
+    })
 
 # ---------- parcels ----------
 
@@ -559,10 +585,12 @@ def hub_invoice_excel(request, pk):
     ws.merge_cells('B11:C11'); cell('A11', 'Address:-', bold=True); cell('B11', parcel.receiver_address)
     ws.merge_cells('B12:C12'); cell('A12', 'Country:-', bold=True); cell('B12', parcel.destination_country.upper())
     ws.merge_cells('B13:C13'); cell('A13', 'Tel:-', bold=True); cell('B13', parcel.receiver_phone)
-    border_range('A1:G13')
+    ws.merge_cells('B14:C14'); cell('A14', 'Email:-', bold=True); cell('B14', parcel.receiver_email)
+    
+    border_range('A1:G14')
 
     # ---- goods table ----
-    hdr = 14
+    hdr = 15
     for col, text in zip('ABCDEFG', ['SN', 'Description of goods', 'KG', 'COUNTRY OF\nORIGIN',
                                      'PKT BOX\nPCS', 'UNIT VALUE\n(IN USD)', 'SUB\nTOTAL']):
         cell(f'{col}{hdr}', text, bold=True, fill=yellow, align=center)
