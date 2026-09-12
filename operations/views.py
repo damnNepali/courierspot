@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-
+from datetime import datetime
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -429,6 +429,8 @@ def parcel_edit(request, pk):
         parcel.receiver_name = request.POST.get('receiver_name', parcel.receiver_name).strip()
         parcel.receiver_phone = request.POST.get('receiver_phone', parcel.receiver_phone).strip()
         parcel.receiver_address = request.POST.get('receiver_address', parcel.receiver_address).strip()
+        parcel.receiver_email = request.POST.get('receiver_email', parcel.receiver_email).strip()
+
         parcel.save()
         log(request.user, f'{parcel.tracking_id}: contact details edited (was {before})')
         messages.success(request, 'Contact details updated. Items and pricing are unchanged (locked).')
@@ -690,21 +692,142 @@ def expenses(request):
 
 @owner_required
 def finance(request):
-    """Income − expenses per branch. ONLY the owner ever sees this."""
+    """Income and expenses per branch with optional date/time filtering.
+    ONLY the owner can access this page.
+    """
+
+    # Get filter values from URL
+    start_value = request.GET.get('start')
+    end_value = request.GET.get('end')
+
+    start_datetime = None
+    end_datetime = None
+
+    # Convert datetime-local values into timezone-aware datetimes
+    if start_value:
+        try:
+            start_datetime = datetime.fromisoformat(start_value)
+
+            if timezone.is_naive(start_datetime):
+                start_datetime = timezone.make_aware(start_datetime)
+
+        except ValueError:
+            start_datetime = None
+
+    if end_value:
+        try:
+            end_datetime = datetime.fromisoformat(end_value)
+
+            if timezone.is_naive(end_datetime):
+                end_datetime = timezone.make_aware(end_datetime)
+
+        except ValueError:
+            end_datetime = None
+
     rows = []
+
     for b in Branch.objects.all():
-        income = b.invoices.aggregate(s=Sum('grand_total'))['s'] or Decimal('0')
-        spent = b.expenses.aggregate(s=Sum('amount'))['s'] or Decimal('0')
-        rows.append({'branch': b, 'income': income, 'spent': spent, 'balance': income - spent})
+
+        # -----------------------------------------
+        # INCOME
+        # -----------------------------------------
+
+        invoices = b.invoices.all()
+
+        if start_datetime:
+            invoices = invoices.filter(
+                created_at__gte=start_datetime
+            )
+
+        if end_datetime:
+            invoices = invoices.filter(
+                created_at__lte=end_datetime
+            )
+
+        income = (
+            invoices.aggregate(s=Sum('grand_total'))['s']
+            or Decimal('0')
+        )
+
+        # -----------------------------------------
+        # EXPENSES
+        # -----------------------------------------
+
+        expenses = b.expenses.all()
+
+        if start_datetime:
+            expenses = expenses.filter(
+                created_at__gte=start_datetime
+            )
+
+        if end_datetime:
+            expenses = expenses.filter(
+                created_at__lte=end_datetime
+            )
+
+        spent = (
+            expenses.aggregate(s=Sum('amount'))['s']
+            or Decimal('0')
+        )
+
+        # -----------------------------------------
+        # BALANCE
+        # -----------------------------------------
+
+        balance = income - spent
+
+        rows.append({
+            'branch': b,
+            'income': income,
+            'spent': spent,
+            'balance': balance,
+        })
+
+    # -----------------------------------------
+    # GRAND TOTALS
+    # -----------------------------------------
+
     totals = {
-        'income': sum(r['income'] for r in rows),
-        'spent': sum(r['spent'] for r in rows),
-        'balance': sum(r['balance'] for r in rows),
+        'income': sum(
+            r['income'] for r in rows
+        ),
+        'spent': sum(
+            r['spent'] for r in rows
+        ),
+        'balance': sum(
+            r['balance'] for r in rows
+        ),
     }
-    return render(request, 'panel/finance.html',
-                  {'rows': rows, 'totals': totals, 'audit': AuditLog.objects.select_related('user')[:30]})
 
+    # -----------------------------------------
+    # AUDIT LOG
+    # -----------------------------------------
 
+    audit = AuditLog.objects.select_related('user')
+
+    if start_datetime:
+        audit = audit.filter(
+            created_at__gte=start_datetime
+        )
+
+    if end_datetime:
+        audit = audit.filter(
+            created_at__lte=end_datetime
+        )
+
+    audit = audit[:30]
+
+    return render(
+        request,
+        'panel/finance.html',
+        {
+            'rows': rows,
+            'totals': totals,
+            'audit': audit,
+            'start_value': start_value or '',
+            'end_value': end_value or '',
+        }
+    )
 @owner_required
 def branches(request):
     if request.method == 'POST':

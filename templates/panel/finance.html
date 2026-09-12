@@ -1,29 +1,351 @@
 {% extends "panel/base_panel.html" %}
-{% block title %}Finance & Audit — Courier Spot Panel{% endblock %}
+
+{% block title %}
+    Finance &amp; Audit — Courier Spot Panel
+{% endblock %}
+
 {% block content %}
-<div class="topbar"><h1>Finance & Audit <span style="font-size:13px;color:var(--muted);font-weight:400">(owner only)</span></h1></div>
+
+<!-- =========================================================
+     TOP BAR
+========================================================= -->
+
+<div class="topbar">
+
+    <h1>
+        Finance &amp; Audit
+        <span style="
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 400;
+        ">
+            (owner only)
+        </span>
+    </h1>
+
+</div>
+
+
+<!-- =========================================================
+     DATE & TIME FILTER
+========================================================= -->
+
+<div class="card" style="margin-bottom: 18px;">
+
+    <form method="get">
+
+        <div style="
+            display: flex;
+            align-items: flex-end;
+            gap: 14px;
+            flex-wrap: wrap;
+        ">
+
+            <!-- FROM -->
+
+            <div style="flex: 1; min-width: 220px;">
+
+                <label
+                    for="start"
+                    style="
+                        display: block;
+                        margin-bottom: 6px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: var(--muted);
+                    "
+                >
+                    FROM DATE &amp; TIME
+                </label>
+
+                <input
+                    type="datetime-local"
+                    id="start"
+                    name="start"
+                    value="{{ start_value }}"
+                    style="
+                        width: 100%;
+                        padding: 10px 12px;
+                        border: 1px solid var(--border);
+                        border-radius: 8px;
+                        background: var(--card);
+                        color: inherit;
+                        font-size: 13px;
+                        box-sizing: border-box;
+                    "
+                >
+
+            </div>
+
+
+            <!-- TO -->
+
+            <div style="flex: 1; min-width: 220px;">
+
+                <label
+                    for="end"
+                    style="
+                        display: block;
+                        margin-bottom: 6px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: var(--muted);
+                    "
+                >
+                    TO DATE &amp; TIME
+                </label>
+
+                <input
+                    type="datetime-local"
+                    id="end"
+                    name="end"
+                    value="{{ end_value }}"
+                    style="
+                        width: 100%;
+                        padding: 10px 12px;
+                        border: 1px solid var(--border);
+                        border-radius: 8px;
+                        background: var(--card);
+                        color: inherit;
+                        font-size: 13px;
+                        box-sizing: border-box;
+                    "
+                >
+
+            </div>
+
+
+            <!-- FILTER -->
+
+            <button
+                type="submit"
+                class="btn"
+                style="height: 40px;"
+            >
+                🔍 Filter
+            </button>
+
+
+            <!-- CLEAR -->
+
+            <a
+                href="{% url 'finance' %}"
+                class="btn ghost"
+                style="height: 40px; box-sizing: border-box;"
+            >
+                Clear
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- =========================================================
+     SUMMARY
+========================================================= -->
+
 <div class="stats">
-  <div class="stat"><div class="n green">NPR {{ totals.income|floatformat:0 }}</div><div class="l">Total Income (all branches)</div></div>
-  <div class="stat"><div class="n red">NPR {{ totals.spent|floatformat:0 }}</div><div class="l">Total Expenses</div></div>
-  <div class="stat"><div class="n gold">NPR {{ totals.balance|floatformat:0 }}</div><div class="l">Remaining Balance</div></div>
+
+    <div class="stat">
+
+        <div class="n green">
+            NPR {{ totals.income|floatformat:0 }}
+        </div>
+
+        <div class="l">
+            Total Income (all branches)
+        </div>
+
+    </div>
+
+
+    <div class="stat">
+
+        <div class="n red">
+            NPR {{ totals.spent|floatformat:0 }}
+        </div>
+
+        <div class="l">
+            Total Expenses
+        </div>
+
+    </div>
+
+
+    <div class="stat">
+
+        <div class="n gold">
+            NPR {{ totals.balance|floatformat:0 }}
+        </div>
+
+        <div class="l">
+            Remaining Balance
+        </div>
+
+    </div>
+
 </div>
+
+
+<!-- =========================================================
+     PER-BRANCH BREAKDOWN
+========================================================= -->
+
 <div class="card">
-  <h3>Per-Branch Breakdown</h3>
-  <table><thead><tr><th>BRANCH</th><th>INCOME</th><th>EXPENSES</th><th>REMAINING BALANCE</th></tr></thead><tbody>
-    {% for r in rows %}
-    <tr><td><b>{{ r.branch.name }}</b> <small style="color:var(--muted)">{{ r.branch.location }}</small></td>
-        <td style="color:#15803D">NPR {{ r.income|floatformat:0 }}</td>
-        <td style="color:var(--crimson)">NPR {{ r.spent|floatformat:0 }}</td>
-        <td><b>NPR {{ r.balance|floatformat:0 }}</b></td></tr>
-    {% endfor %}
-  </tbody></table>
+
+    <h3>
+        Per-Branch Breakdown
+    </h3>
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>BRANCH</th>
+                <th>INCOME</th>
+                <th>EXPENSES</th>
+                <th>REMAINING BALANCE</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% for r in rows %}
+
+            <tr>
+
+                <td>
+
+                    <b>
+                        {{ r.branch.name }}
+                    </b>
+
+                    <small style="color: var(--muted);">
+                        {{ r.branch.location }}
+                    </small>
+
+                </td>
+
+
+                <td style="color: #15803D;">
+
+                    NPR {{ r.income|floatformat:0 }}
+
+                </td>
+
+
+                <td style="color: var(--crimson);">
+
+                    NPR {{ r.spent|floatformat:0 }}
+
+                </td>
+
+
+                <td>
+
+                    <b>
+                        NPR {{ r.balance|floatformat:0 }}
+                    </b>
+
+                </td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+
+                <td
+                    colspan="4"
+                    style="
+                        text-align: center;
+                        color: var(--muted);
+                        padding: 30px;
+                    "
+                >
+                    No financial records found for this period.
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
 </div>
+
+
+<!-- =========================================================
+     AUDIT LOG
+========================================================= -->
+
 <div class="card">
-  <h3>Audit Log — who did what, when</h3>
-  <table><thead><tr><th>DATE & TIME</th><th>USER</th><th>ACTION</th></tr></thead><tbody>
-    {% for a in audit %}
-    <tr><td>{{ a.created_at|date:"d M Y, g:i A" }}</td><td>{{ a.user.username|default:"—" }}</td><td>{{ a.action }}</td></tr>
-    {% empty %}<tr><td colspan="3" style="text-align:center;color:var(--muted)">No activity yet.</td></tr>{% endfor %}
-  </tbody></table>
+
+    <h3>
+        Audit Log — who did what, when
+    </h3>
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>DATE &amp; TIME</th>
+                <th>USER</th>
+                <th>ACTION</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% for a in audit %}
+
+            <tr>
+
+                <td>
+                    {{ a.created_at|date:"d M Y, g:i A" }}
+                </td>
+
+                <td>
+                    {{ a.user.username|default:"—" }}
+                </td>
+
+                <td>
+                    {{ a.action }}
+                </td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+
+                <td
+                    colspan="3"
+                    style="
+                        text-align: center;
+                        color: var(--muted);
+                    "
+                >
+                    No activity for this period.
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
 </div>
+
 {% endblock %}

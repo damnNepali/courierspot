@@ -26,7 +26,7 @@ class Parcel(models.Model):
         CANCELLED = 'CANCELLED', 'Cancelled'
 
     CARRIERS = [('FEDEX', 'FedEx'), ('DHL', 'DHL Express'), ('ARAMEX', 'Aramex'),
-                ('JFK', 'JFK'), ('DPD', 'DPD'),('UPS', 'UPS'),('LHR', 'LHR'),('AMS', 'AMS'),]
+                 ('DPD', 'DPD'),('UPS', 'UPS'),('LHR', 'LHR'),('AMS', 'AMS'),]
 
     tracking_id = models.CharField(max_length=20, unique=True, editable=False)
     branch = models.ForeignKey('operations.Branch', on_delete=models.PROTECT, related_name='parcels')

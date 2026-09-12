@@ -1,20 +1,310 @@
 {% extends "panel/base_panel.html" %}
 
 {% block title %}
-Parcels — Courier Spot Panel
+    Parcels — Courier Spot Panel
 {% endblock %}
 
 {% block content %}
 
 <style>
-    /* ================================
-       Pagination
-    ================================= */
+    /* =========================================================
+       PARCEL TABLE
+    ========================================================= */
+
+    .parcel-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .parcel-table {
+        width: 100%;
+        min-width: 1100px;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+    }
+
+    /* =========================================================
+       TABLE HEADER
+    ========================================================= */
+
+    .parcel-table th {
+        padding: 12px 12px;
+        background: #F1F5F9;
+        color: #64748B;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-align: left;
+        white-space: nowrap;
+        border-bottom: 1px solid #E2E8F0;
+    }
+
+    /* =========================================================
+       TABLE CELLS
+    ========================================================= */
+
+    .parcel-table td {
+        padding: 13px 12px;
+        vertical-align: middle;
+        font-size: 12.5px;
+        line-height: 1.35;
+        color: #1E293B;
+        border-bottom: 1px solid #E5EAF0;
+
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    .parcel-row {
+        transition: background 0.15s ease;
+    }
+
+    .parcel-row:hover {
+        background: #F8FAFC;
+    }
+
+    /* =========================================================
+       COLUMN WIDTHS
+    ========================================================= */
+
+    .parcel-table th:nth-child(1),
+    .parcel-table td:nth-child(1) {
+        width: 14%;
+    }
+
+    .parcel-table th:nth-child(2),
+    .parcel-table td:nth-child(2) {
+        width: 9%;
+    }
+
+    .parcel-table th:nth-child(3),
+    .parcel-table td:nth-child(3) {
+        width: 11%;
+    }
+
+    .parcel-table th:nth-child(4),
+    .parcel-table td:nth-child(4) {
+        width: 12%;
+    }
+
+    .parcel-table th:nth-child(5),
+    .parcel-table td:nth-child(5) {
+        width: 9%;
+    }
+
+    .parcel-table th:nth-child(6),
+    .parcel-table td:nth-child(6) {
+        width: 11%;
+    }
+
+    .parcel-table th:nth-child(7),
+    .parcel-table td:nth-child(7) {
+        width: 8%;
+    }
+
+    .parcel-table th:nth-child(8),
+    .parcel-table td:nth-child(8) {
+        width: 12%;
+    }
+
+    .parcel-table th:nth-child(9),
+    .parcel-table td:nth-child(9) {
+        width: 10%;
+    }
+
+    /* =========================================================
+       TRACKING ID
+    ========================================================= */
+
+    .tracking-id {
+        display: block;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #0F172A;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    /* =========================================================
+       INVOICE
+    ========================================================= */
+
+    .invoice-no {
+        display: block;
+        font-size: 11.5px;
+        color: #334155;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    /* =========================================================
+       PERSON / CONTACT
+    ========================================================= */
+
+    .person-name {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #1E293B;
+        line-height: 1.3;
+    }
+
+    .person-phone {
+        display: block;
+        margin-top: 3px;
+        font-size: 10.5px;
+        color: #94A3B8;
+        line-height: 1.25;
+    }
+
+    /* =========================================================
+       DESTINATION
+    ========================================================= */
+
+    .destination {
+        font-size: 12px;
+        color: #334155;
+        line-height: 1.3;
+    }
+
+    /* =========================================================
+       STATUS
+    ========================================================= */
+
+    .status-cell {
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .parcel-status {
+        display: flex;
+        align-items: flex-start;
+        gap: 5px;
+
+        width: fit-content;
+        max-width: 100%;
+
+        padding: 5px 8px;
+
+        border-radius: 7px;
+
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.3;
+
+        box-sizing: border-box;
+
+        /*
+         * IMPORTANT:
+         * Allow status text to move onto the next line.
+         */
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
+    .parcel-status-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .status-dot {
+        width: 5px;
+        height: 5px;
+        min-width: 5px;
+
+        margin-top: 4px;
+
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    /* Status Colors */
+
+    .parcel-status.created {
+        background: #FFF7ED;
+        color: #C2410C;
+    }
+
+    .parcel-status.departed {
+        background: #EFF6FF;
+        color: #1D4ED8;
+    }
+
+    .parcel-status.transit {
+        background: #F0FDF4;
+        color: #15803D;
+    }
+
+    .parcel-status.delivered {
+        background: #ECFDF5;
+        color: #047857;
+    }
+
+    .parcel-status.cancelled {
+        background: #FEF2F2;
+        color: #B91C1C;
+    }
+
+    /* =========================================================
+       TOTAL
+    ========================================================= */
+
+    .parcel-total {
+        display: block;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #0F172A;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+
+    /* =========================================================
+       BRANCH
+    ========================================================= */
+
+    .branch-name {
+        display: block;
+        font-size: 11px;
+        font-weight: 500;
+        color: #334155;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    /* =========================================================
+       DATE & TIME
+    ========================================================= */
+
+    .parcel-date {
+        display: block;
+        font-size: 10.5px;
+        color: #64748B;
+        line-height: 1.35;
+        white-space: normal;
+    }
+
+    /* =========================================================
+       EMPTY STATE
+    ========================================================= */
+
+    .empty-parcels {
+        padding: 40px 20px !important;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    /* =========================================================
+       PAGINATION
+    ========================================================= */
 
     .pagination {
         display: flex;
         align-items: center;
         justify-content: space-between;
+
         gap: 12px;
 
         margin-top: 18px;
@@ -41,6 +331,7 @@ Parcels — Courier Spot Panel
 
         min-width: 36px;
         height: 36px;
+
         padding: 0 12px;
 
         border: 1px solid var(--border);
@@ -72,17 +363,16 @@ Parcels — Courier Spot Panel
         padding: 0 8px;
 
         color: var(--muted);
-
         font-size: 13px;
+
         white-space: nowrap;
     }
 
+    /* =========================================================
+       MOBILE
+    ========================================================= */
 
-    /* ================================
-       Responsive Pagination
-    ================================= */
-
-    @media (max-width: 600px) {
+    @media (max-width: 700px) {
 
         .pagination {
             flex-direction: column;
@@ -93,24 +383,19 @@ Parcels — Courier Spot Panel
             width: 100%;
             justify-content: space-between;
         }
-
     }
 </style>
 
 
-<!-- ================================
+<!-- =========================================================
      TOP BAR
-================================= -->
+========================================================= -->
 
 <div class="topbar">
 
-    <h1>
-        Parcels
-    </h1>
-
+    <h1>Parcels</h1>
 
     <!-- Search -->
-
     <form method="get">
 
         <div class="search">
@@ -119,7 +404,7 @@ Parcels — Courier Spot Panel
                 type="text"
                 name="q"
                 value="{{ q }}"
-                placeholder="Search tracking ID, invoice no., phone or name…"
+                placeholder="Search tracking ID, invoice no., phone or name..."
             >
 
             <button type="submit">
@@ -132,7 +417,6 @@ Parcels — Courier Spot Panel
 
 
     <!-- New Shipment -->
-
     <a
         class="btn"
         href="{% url 'shipment_create' %}"
@@ -143,146 +427,255 @@ Parcels — Courier Spot Panel
 </div>
 
 
-<!-- ================================
-     PARCEL TABLE
-================================= -->
+<!-- =========================================================
+     PARCEL CARD
+========================================================= -->
 
 <div class="card">
 
-    <table>
+    <div class="parcel-table-wrapper">
 
-        <thead>
+        <table class="parcel-table">
 
-            <tr>
-                <th>TRACKING ID</th>
-                <th>INVOICE</th>
-                <th>SENDER</th>
-                <th>RECEIVER</th>
-                <th>DESTINATION</th>
-                <th>STATUS</th>
-                <th>TOTAL</th>
-                <th>DATE & TIME</th>
-            </tr>
+            <!-- =================================================
+                 TABLE HEADER
+            ================================================== -->
 
-        </thead>
+            <thead>
 
+                <tr>
 
-        <tbody>
+                    <th>TRACKING ID</th>
 
-            {% for p in parcels %}
+                    <th>INVOICE</th>
 
-            <tr
-                onclick="location='{% url 'parcel_detail' p.pk %}'"
-                style="cursor: pointer;"
-            >
+                    <th>SENDER</th>
 
-                <!-- Tracking ID -->
+                    <th>RECEIVER</th>
 
-                <td>
-                    <b>
-                        {{ p.tracking_id }}
-                    </b>
-                </td>
+                    <th>DESTINATION</th>
 
+                    <th>STATUS</th>
 
-                <!-- Invoice -->
+                    <th>TOTAL</th>
 
-                <td>
-                    {{ p.invoice.invoice_no }}
-                </td>
+                    <th>BRANCH</th>
+
+                    <th>DATE &amp; TIME</th>
+
+                </tr>
+
+            </thead>
 
 
-                <!-- Sender -->
+            <!-- =================================================
+                 TABLE BODY
+            ================================================== -->
 
-                <td>
+            <tbody>
 
-                    {{ p.sender_name }}
+                {% for p in parcels %}
 
-                    <br>
-
-                    <small style="color: var(--muted);">
-                        {{ p.sender_phone }}
-                    </small>
-
-                </td>
-
-
-                <!-- Receiver -->
-
-                <td>
-                    {{ p.receiver_name }}
-                </td>
-
-
-                <!-- Destination -->
-
-                <td>
-                    {{ p.destination_country }}
-                </td>
-
-
-                <!-- Status -->
-
-                <td>
-
-                    <span class="pill pi-{{ p.status }}">
-                        {{ p.get_status_display }}
-                    </span>
-
-                </td>
-
-
-                <!-- Total -->
-
-                <td>
-
-                    <b>
-                        NPR {{ p.invoice.grand_total|floatformat:0 }}
-                    </b>
-
-                </td>
-
-
-                <!-- Date -->
-
-                <td>
-                    {{ p.created_at|date:"d M Y, g:i A" }}
-                </td>
-
-            </tr>
-
-
-            {% empty %}
-
-            <tr>
-
-                <td
-                    colspan="8"
-                    style="text-align: center; color: var(--muted);"
+                <tr
+                    class="parcel-row"
+                    onclick="location='{% url 'parcel_detail' p.pk %}'"
+                    style="cursor: pointer;"
                 >
 
-                    No parcels found
+                    <!-- =========================================
+                         TRACKING ID
+                    ========================================== -->
 
-                    {% if q %}
-                        for “{{ q }}”
-                    {% endif %}
+                    <td>
 
-                    .
+                        <span class="tracking-id">
+                            {{ p.tracking_id }}
+                        </span>
 
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </tbody>
-
-    </table>
+                    </td>
 
 
-    <!-- ================================
+                    <!-- =========================================
+                         INVOICE
+                    ========================================== -->
+
+                    <td>
+
+                        {% if p.invoice %}
+
+                            <span class="invoice-no">
+                                {{ p.invoice.invoice_no }}
+                            </span>
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- =========================================
+                         SENDER
+                    ========================================== -->
+
+                    <td>
+
+                        <span class="person-name">
+                            {{ p.sender_name }}
+                        </span>
+
+                        <span class="person-phone">
+                            {{ p.sender_phone }}
+                        </span>
+
+                    </td>
+
+
+                    <!-- =========================================
+                         RECEIVER
+                    ========================================== -->
+
+                    <td>
+
+                        <span class="person-name">
+                            {{ p.receiver_name }}
+                        </span>
+
+                        <span class="person-phone">
+                            {{ p.receiver_phone }}
+                        </span>
+
+                    </td>
+
+
+                    <!-- =========================================
+                         DESTINATION
+                    ========================================== -->
+
+                    <td>
+
+                        <span class="destination">
+                            {{ p.destination_country }}
+                        </span>
+
+                    </td>
+
+
+                    <!-- =========================================
+                         STATUS
+                    ========================================== -->
+
+                    <td class="status-cell">
+
+                        <span class="parcel-status">
+
+                            <span class="status-dot"></span>
+
+                            <span class="parcel-status-text">
+                                {{ p.get_status_display }}
+                            </span>
+
+                        </span>
+
+                    </td>
+
+
+                    <!-- =========================================
+                         TOTAL
+                    ========================================== -->
+
+                    <td>
+
+                        {% if p.invoice %}
+
+                            <span class="parcel-total">
+                                NPR {{ p.invoice.grand_total|floatformat:0 }}
+                            </span>
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- =========================================
+                         BRANCH
+                    ========================================== -->
+
+                    <td>
+
+                        {% if p.branch %}
+
+                            <span class="branch-name">
+                                {{ p.branch.name }}
+                            </span>
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- =========================================
+                         DATE & TIME
+                    ========================================== -->
+
+                    <td>
+
+                        <span class="parcel-date">
+                            {{ p.created_at|date:"d M Y, g:i A" }}
+                        </span>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <!-- =============================================
+                     NO PARCELS
+                ============================================== -->
+
+                <tr>
+
+                    <td
+                        colspan="9"
+                        class="empty-parcels"
+                    >
+
+                        No parcels found
+
+                        {% if q %}
+                            for “{{ q }}”
+                        {% endif %}
+
+                        .
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- =========================================================
          PAGINATION
-    ================================= -->
+    ========================================================== -->
 
     {% if parcels.has_other_pages %}
 
@@ -350,8 +743,11 @@ Parcels — Courier Spot Panel
             <span class="page-info">
 
                 Page
+
                 {{ parcels.number }}
+
                 of
+
                 {{ parcels.paginator.num_pages }}
 
             </span>
@@ -379,7 +775,6 @@ Parcels — Courier Spot Panel
                 </span>
 
             {% endif %}
-
 
         </div>
 
