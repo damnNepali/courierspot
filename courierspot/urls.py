@@ -66,6 +66,8 @@ urlpatterns = [
     path('panel/branches/', ops.branches, name='branches'),
     path('panel/staff/new/', ops.staff_create, name='staff_create'),
     path('panel/rates/', ops.rates_manage, name='rates_manage'),
+    path('panel/hub-calculation/', ops.hub_calculation, name='hub_calculation'),
+    path('panel/hub-calculation/excel/', ops.hub_calculation_excel, name='hub_calculation_excel'),
     path('panel/restricted/add/', ops.restricted_add, name='restricted_add'),
 
     # API

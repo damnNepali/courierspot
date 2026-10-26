@@ -1,0 +1,226 @@
+{% extends "panel/base_panel.html" %}
+{% block title %}HUB Calculation — Courier Spot Panel{% endblock %}
+{% block content %}
+<style>
+.ratet{font-size:13.5px}
+.ratet td{padding:7px 12px}
+.ratet th.num,.ratet td.num{text-align:right}
+.ratet input{width:130px;padding:7px 10px;text-align:right}
+.ratet tr.defrow td{background:#FFF8E1}
+.hubt input.zero{border-color:var(--crimson);background:#FDE6DC}
+.hint{font-size:12.5px;color:var(--muted);margin-top:4px}
+.range{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:500;margin:4px 0 14px}
+.check input{width:auto}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+.hubt{font-size:13px;min-width:1500px}
+.hubt th{white-space:nowrap;font-size:11px;padding:10px}
+.hubt td{padding:8px 10px;white-space:nowrap}
+.hubt td.num,.hubt th.num{text-align:right}
+.hubt input{width:92px;padding:6px 8px;font-size:13px;text-align:right;border-radius:7px}
+.hubt tfoot td{background:#FFF8E1;font-weight:700;border-top:2px solid var(--navy)}
+.hubt .neg{color:var(--crimson)}
+.hubt tr.cancel td{opacity:.55}
+.calc-col{background:#F8FAFC}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+@media print{
+  .card.noprint-card{display:none}
+  .card{border:none;padding:0}
+  .tablewrap{overflow:visible;border:none}
+  .hubt{min-width:0;font-size:9px}
+  .hubt input{border:none;width:auto;padding:0;font-size:9px}
+  .print-title{display:block!important}
+  @page{size:A4 landscape;margin:10mm}
+}
+</style>
+
+<div class="topbar"><h1>🧮 HUB Calculation</h1></div>
+
+<div class="card noprint-card">
+  <h3>1 · Choose branch</h3>
+  <form method="get" style="max-width:520px">
+    <select name="branch" onchange="this.form.submit()">
+      <option value="">— select a branch —</option>
+      {% for b in branches %}<option value="{{ b.pk }}" {% if branch and b.pk == branch.pk %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+    </select>
+    <p class="hint">Only invoices made at this branch are included — no other branch's bills.</p>
+  </form>
+</div>
+
+{% if branch %}
+<div class="card noprint-card">
+  <details {% if not rows %}open{% endif %}>
+  <summary style="cursor:pointer"><h3 style="display:inline">2 · HUB per-kg rates for {{ branch.name }} — by country</h3></summary>
+  <p class="hint" style="margin:10px 0 14px">Each parcel gets its <b>country</b> rate for its <b>weight slab</b>. Leave a cell blank to use the <b>Default</b> row. Changing one single row is still possible in the table below.</p>
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="action" value="save_rates">
+    <input type="hidden" name="branch" value="{{ branch.pk }}">
+    <input type="hidden" name="from" value="{{ from_pk }}">
+    <input type="hidden" name="to" value="{{ to_pk }}">
+    <input type="hidden" name="rate_rows" value="{{ rate_table|length }}">
+    {% if include_cancelled %}<input type="hidden" name="include_cancelled" value="1">{% endif %}
+    <div class="tablewrap" style="margin-bottom:14px">
+    <table class="ratet">
+      <thead><tr><th>COUNTRY</th><th class="num">BELOW 10 KG</th><th class="num">10 – 19.5 KG</th><th class="num">20 KG +</th><th class="num">CUSTOM + INSURANCE</th></tr></thead>
+      <tbody>
+      {% for t in rate_table %}
+        <tr{% if not t.country %} class="defrow"{% endif %}>
+          <td>{% if t.country %}{{ t.country }}{% else %}<b>Default</b> <span class="hint">(all other countries)</span>{% endif %}
+            <input type="hidden" name="country_{{ forloop.counter0 }}" value="{{ t.country }}"></td>
+          <td class="num"><input type="number" step="0.01" min="0" name="below10_{{ forloop.counter0 }}" value="{{ t.rate.rate_below_10|default_if_none:'' }}" placeholder="{% if t.country %}default{% else %}0{% endif %}"></td>
+          <td class="num"><input type="number" step="0.01" min="0" name="mid_{{ forloop.counter0 }}" value="{{ t.rate.rate_10_to_20|default_if_none:'' }}" placeholder="{% if t.country %}default{% else %}0{% endif %}"></td>
+          <td class="num"><input type="number" step="0.01" min="0" name="plus20_{{ forloop.counter0 }}" value="{{ t.rate.rate_20_plus|default_if_none:'' }}" placeholder="{% if t.country %}default{% else %}0{% endif %}"></td>
+          <td class="num"><input type="number" step="0.01" min="0" name="custom_{{ forloop.counter0 }}" value="{{ t.rate.custom_insurance|default_if_none:'' }}" placeholder="{% if t.country %}default{% else %}800{% endif %}"></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <button class="btn navy">Save rates for this branch</button>
+  </form>
+  </details>
+</div>
+{% endif %}
+
+{% if branch %}
+<div class="card noprint-card">
+  <h3>3 · Invoice range</h3>
+  {% if branch_invoices %}
+  <form method="get">
+    <input type="hidden" name="branch" value="{{ branch.pk }}">
+    <div class="range">
+      <div class="fg"><label>From invoice</label>
+        <select name="from" required>
+          {% for i in branch_invoices %}<option value="{{ i.pk }}" {% if i.pk|stringformat:"s" == from_pk %}selected{% endif %}>{{ i.invoice_no }} · {{ i.created_at|date:"d M Y" }} · {{ i.parcel.sender_name }}</option>{% endfor %}
+        </select></div>
+      <div class="fg"><label>To invoice</label>
+        <select name="to" required>
+          {% for i in branch_invoices %}<option value="{{ i.pk }}" {% if i.pk|stringformat:"s" == to_pk %}selected{% elif not to_pk and forloop.last %}selected{% endif %}>{{ i.invoice_no }} · {{ i.created_at|date:"d M Y" }} · {{ i.parcel.sender_name }}</option>{% endfor %}
+        </select></div>
+    </div>
+    <label class="check"><input type="checkbox" name="include_cancelled" value="1" {% if include_cancelled %}checked{% endif %}> Include cancelled parcels</label>
+    <button class="btn">Show calculation</button>
+  </form>
+  {% else %}
+  <p style="color:var(--muted)">{{ branch.name }} has no invoices yet.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if from_pk and to_pk and branch %}
+<div class="card">
+  <div class="print-title" style="display:none;margin-bottom:10px">
+    <h3 style="margin:0">{{ branch.name }} — HUB calculation</h3>
+    {% if rows %}{% with rows|last as l %}<div style="font-size:12px">{{ rows.0.inv.invoice_no }} to {{ l.inv.invoice_no }} · {{ rows|length }} invoices</div>{% endwith %}{% endif %}
+  </div>
+  {% if rows %}
+  <form method="post" action="{% url 'hub_calculation_excel' %}" id="hubform">{% csrf_token %}
+    <input type="hidden" name="branch" value="{{ branch.pk }}">
+    <input type="hidden" name="from" value="{{ from_pk }}">
+    <input type="hidden" name="to" value="{{ to_pk }}">
+    {% if include_cancelled %}<input type="hidden" name="include_cancelled" value="1">{% endif %}
+
+    <div class="actions no-print">
+      <h3 style="margin:0;flex:1">4 · {{ rows|length }} invoice{{ rows|length|pluralize }} · {{ rows.0.inv.invoice_no }} → {% with rows|last as l %}{{ l.inv.invoice_no }}{% endwith %}</h3>
+      <button type="button" class="btn ghost" onclick="window.print()">🖨 Print</button>
+      <button class="btn">⬇ Download Excel</button>
+    </div>
+    <p class="hint no-print" style="margin:-6px 0 12px">Rates come from the country + weight slab table above. Edit Per Kg Rate, Custom + Insurance or Remaining Charge on any row — totals update live and the Excel uses what you see here. <span style="color:var(--crimson)">Red</span> = no rate set for that country/slab.</p>
+
+    <div class="tablewrap">
+    <table class="hubt">
+      <thead><tr>
+        <th>DATE</th><th>SENDER NAME</th><th>RECEIVER NAME</th><th>COUNTRY</th>
+        <th class="num">WEIGHT</th><th class="num">TOTAL INCOME</th><th class="num">PER KG RATE</th>
+        <th class="num">CUSTOM + INSURANCE</th><th class="num">ADDITIONAL CHARGES</th><th class="num">REMAINING CHARGE</th>
+        <th class="num">HUB PAYMENT</th><th class="num">PROFIT</th><th class="num">SPOT COMMISSION</th>
+        <th class="num">BRANCH PROFIT</th><th class="num">PAYMENT TO HUB</th><th>INVOICE</th>
+      </tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr class="hrow{% if r.cancelled %} cancel{% endif %}" data-weight="{{ r.weight }}" data-income="{{ r.income }}" data-additional="{{ r.additional }}">
+          <td>{{ r.date|date:"j F Y" }}</td>
+          <td>{{ r.sender }}</td>
+          <td>{{ r.receiver }}</td>
+          <td>{{ r.country }}</td>
+          <td class="num">{{ r.weight|floatformat:"-2" }}</td>
+          <td class="num">{{ r.income|floatformat:2 }}</td>
+          <td class="num"><input type="number" step="0.01" min="0" name="rate_{{ r.inv.pk }}" value="{{ r.rate }}" class="in-rate"></td>
+          <td class="num"><input type="number" step="0.01" min="0" name="custom_{{ r.inv.pk }}" value="{{ r.custom }}" class="in-custom"></td>
+          <td class="num">{{ r.additional|floatformat:2 }}</td>
+          <td class="num"><input type="number" step="0.01" min="0" name="remaining_{{ r.inv.pk }}" value="{{ r.remaining }}" class="in-remaining"></td>
+          <td class="num calc-col c-hub">{{ r.hub_payment|floatformat:2 }}</td>
+          <td class="num calc-col c-profit">{{ r.profit|floatformat:2 }}</td>
+          <td class="num calc-col c-spot">{{ r.spot|floatformat:2 }}</td>
+          <td class="num calc-col c-branch">{{ r.branch_profit|floatformat:2 }}</td>
+          <td class="num calc-col c-pay">{{ r.payment_to_hub|floatformat:2 }}</td>
+          <td><a href="{% url 'invoice_print' r.inv.pk %}" target="_blank" style="color:var(--navy);text-decoration:underline">{{ r.inv.invoice_no }}</a>{% if r.cancelled %} <span class="pill pi-CANCELLED">Cancelled</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="4">TOTAL</td>
+        <td class="num" id="t-weight">{{ totals.weight|floatformat:"-2" }}</td>
+        <td class="num" id="t-income">{{ totals.income|floatformat:2 }}</td>
+        <td></td>
+        <td class="num" id="t-custom">{{ totals.custom|floatformat:2 }}</td>
+        <td class="num" id="t-additional">{{ totals.additional|floatformat:2 }}</td>
+        <td class="num" id="t-remaining">{{ totals.remaining|floatformat:2 }}</td>
+        <td class="num" id="t-hub">{{ totals.hub_payment|floatformat:2 }}</td>
+        <td class="num" id="t-profit">{{ totals.profit|floatformat:2 }}</td>
+        <td class="num" id="t-spot">{{ totals.spot|floatformat:2 }}</td>
+        <td class="num" id="t-branch">{{ totals.branch_profit|floatformat:2 }}</td>
+        <td class="num" id="t-pay">{{ totals.payment_to_hub|floatformat:2 }}</td>
+        <td></td>
+      </tr></tfoot>
+    </table>
+    </div>
+  </form>
+
+  <div class="stats" style="margin:20px 0 0">
+    <div class="stat"><div class="n" id="s-hub">{{ totals.hub_payment|floatformat:2 }}</div><div class="l">Hub payment (NPR)</div></div>
+    <div class="stat"><div class="n green" id="s-profit">{{ totals.profit|floatformat:2 }}</div><div class="l">Total profit (NPR)</div></div>
+    <div class="stat"><div class="n gold" id="s-spot">{{ totals.spot|floatformat:2 }}</div><div class="l">Spot commission 30% (NPR)</div></div>
+    <div class="stat"><div class="n" id="s-branch">{{ totals.branch_profit|floatformat:2 }}</div><div class="l">Branch profit 70% (NPR)</div></div>
+    <div class="stat"><div class="n red" id="s-pay">{{ totals.payment_to_hub|floatformat:2 }}</div><div class="l">Payment to hub (NPR)</div></div>
+  </div>
+
+  <script>
+  (function () {
+    const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+    const fmt = n => n.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const set = (el, n) => { el.textContent = fmt(n); el.classList.toggle('neg', n < 0); };
+    function recalc() {
+      const t = {custom:0, remaining:0, hub:0, profit:0, spot:0, branch:0, pay:0};
+      document.querySelectorAll('tr.hrow').forEach(tr => {
+        const w = num(tr.dataset.weight), inc = num(tr.dataset.income), add = num(tr.dataset.additional);
+        const rateIn = tr.querySelector('.in-rate'), rate = num(rateIn.value);
+        rateIn.classList.toggle('zero', rate === 0);
+        const custom = num(tr.querySelector('.in-custom').value);
+        const rem = num(tr.querySelector('.in-remaining').value);
+        const hub = Math.round((w * rate + custom + add) * 100) / 100;   // K = E*G+H+I
+        const profit = inc - hub;                                         // L = F-K
+        const spot = Math.round(profit * 0.3 * 100) / 100;               // M = 0.3*L
+        const branch = Math.round(profit * 0.7 * 100) / 100;             // N = 0.7*L
+        const pay = hub + spot;                                           // O = K+M
+        set(tr.querySelector('.c-hub'), hub); set(tr.querySelector('.c-profit'), profit);
+        set(tr.querySelector('.c-spot'), spot); set(tr.querySelector('.c-branch'), branch);
+        set(tr.querySelector('.c-pay'), pay);
+        t.custom += custom; t.remaining += rem; t.hub += hub; t.profit += profit;
+        t.spot += spot; t.branch += branch; t.pay += pay;
+      });
+      for (const k in t) {
+        const el = document.getElementById('t-' + k); if (el) set(el, t[k]);
+        const s = document.getElementById('s-' + k); if (s) set(s, t[k]);
+      }
+    }
+    document.getElementById('hubform').addEventListener('input', recalc);
+    recalc();
+  })();
+  </script>
+  {% else %}
+  <p style="color:var(--muted)">No invoices from {{ branch.name }} in that range.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

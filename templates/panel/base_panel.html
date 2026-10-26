@@ -88,6 +88,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--crimson)}
     <a href="{% url 'finance' %}" class="{% if request.resolver_match.url_name == 'finance' %}active{% endif %}">💰 Finance & Audit</a>
     <a href="{% url 'branches' %}" class="{% if request.resolver_match.url_name == 'branches' %}active{% endif %}">🏢 Branches & Staff</a>
     <a href="{% url 'rates_manage' %}" class="{% if request.resolver_match.url_name == 'rates_manage' %}active{% endif %}">🌍 Rates & Restricted</a>
+    <a href="{% url 'hub_calculation' %}" class="{% if request.resolver_match.url_name == 'hub_calculation' %}active{% endif %}">🧮 HUB Calculation</a>
     {% endif %}
     <div class="sec">WEBSITE</div>
     <a href="/" target="_blank">🌐 View Public Site</a>

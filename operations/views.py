@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.core.paginator import Paginator
 
@@ -17,7 +18,7 @@ from core.models import RateCard, RestrictedItem, ContactEnquiry
 from core.terms import TERMS_AND_CONDITIONS
 from tracking.models import Parcel, TrackingEvent
 from .models import (AuditLog, Box, BoxCharge, BoxItem, Branch, CUSTOMS_TAX,
-                     Expense, Invoice, InvoiceItem, log)
+                     Expense, HubRate, HubRateBook, Invoice, InvoiceItem, log)
 import re
 from io import BytesIO
 
@@ -840,6 +841,307 @@ def branches(request):
         return redirect('branches')
     return render(request, 'panel/branches.html',
                   {'branches': Branch.objects.all(), 'staff': User.objects.exclude(role='CUSTOMER')})
+
+
+# ---------- owner-only: HUB calculation per branch ----------
+# Columns (same as the owner's Google sheet):
+#   A Date | B Sender | C Receiver | D Country | E Weight | F Total Income |
+#   G Per Kg Rate | H Custom + Insurance | I Additional Charges |
+#   J Remaining Charge | K Hub Payment = E*G+H+I | L Profit = F-K |
+#   M Spot Commission = 0.3*L | N Branch Profit = 0.7*L | O Payment to hub = K+M
+
+SPOT_SHARE = Decimal('0.3')
+BRANCH_SHARE = Decimal('0.7')
+_TWO = Decimal('0.01')
+
+
+def _dec(raw, default):
+    """Parse a user-typed number; fall back to default when blank/invalid."""
+    try:
+        raw = (raw or '').strip().replace(',', '')
+        return Decimal(raw) if raw else default
+    except InvalidOperation:
+        return default
+
+
+def _hub_invoices(branch, from_pk, to_pk, include_cancelled=False):
+    """Invoices of ONE branch only, between two invoices (inclusive)."""
+    lo, hi = sorted([int(from_pk), int(to_pk)])
+    qs = (Invoice.objects.filter(branch=branch, pk__gte=lo, pk__lte=hi)
+          .select_related('parcel').order_by('pk'))
+    if not include_cancelled:
+        qs = qs.exclude(parcel__status=Parcel.Status.CANCELLED)
+    return qs
+
+
+def _dec_or_none(raw):
+    """Blank → None (means: fall back to the default row)."""
+    raw = (raw or '').strip().replace(',', '')
+    if not raw:
+        return None
+    try:
+        v = Decimal(raw)
+    except InvalidOperation:
+        return None
+    return v if v >= 0 else None
+
+
+def _hub_rate_table(branch):
+    """Rows for the rate editor: Default first, then every country from the
+    rate card + any country this branch has shipped to or has a rate for."""
+    saved = {r.country: r for r in branch.hub_rates.all()}
+    countries = set(RateCard.objects.values_list('country', flat=True))
+    countries |= set(Parcel.objects.filter(branch=branch, is_draft=False)
+                     .values_list('destination_country', flat=True))
+    countries |= {c for c in saved if c}
+    countries = sorted({c.strip() for c in countries if c and c.strip()}, key=str.lower)
+    return [{'country': c, 'rate': saved.get(c)} for c in [''] + countries]
+
+
+def _hub_rows(invoices, book, overrides=None):
+    """Build one calculation row per invoice. `overrides` is a dict-like
+    (request.POST/GET) that may hold rate_<pk>, custom_<pk>, remaining_<pk>."""
+    overrides = overrides or {}
+    rows = []
+    for inv in invoices:
+        p = inv.parcel
+        weight = inv.total_weight or Decimal('0')
+        rate = _dec(overrides.get(f'rate_{inv.pk}'), book.rate_for(p.destination_country, weight))
+        custom = _dec(overrides.get(f'custom_{inv.pk}'), book.custom_for(p.destination_country))
+        remaining = _dec(overrides.get(f'remaining_{inv.pk}'), Decimal('0'))
+        additional = inv.additional_charges_total or Decimal('0')
+        income = inv.grand_total or Decimal('0')
+        hub_payment = (weight * rate + custom + additional).quantize(_TWO)
+        profit = income - hub_payment
+        spot = (profit * SPOT_SHARE).quantize(_TWO)
+        branch_profit = (profit * BRANCH_SHARE).quantize(_TWO)
+        rows.append({
+            'inv': inv, 'date': timezone.localtime(inv.created_at).date(),
+            'sender': p.sender_name, 'receiver': p.receiver_name,
+            'country': p.destination_country, 'weight': weight, 'income': income,
+            'rate': rate, 'custom': custom, 'additional': additional,
+            'remaining': remaining, 'hub_payment': hub_payment, 'profit': profit,
+            'spot': spot, 'branch_profit': branch_profit,
+            'payment_to_hub': hub_payment + spot,
+            'cancelled': p.status == Parcel.Status.CANCELLED,
+        })
+    return rows
+
+
+def _hub_totals(rows):
+    keys = ['weight', 'income', 'custom', 'additional', 'remaining', 'hub_payment',
+            'profit', 'spot', 'branch_profit', 'payment_to_hub']
+    return {k: sum((r[k] for r in rows), Decimal('0')) for k in keys}
+
+
+@owner_required
+def hub_calculation(request):
+    """Pick a branch → set its HUB per-kg slabs per country → pick an
+    invoice range → preview & adjust per-row rates → download Excel."""
+    branches = Branch.objects.all().order_by('name')
+    branch = None
+    branch_id = request.POST.get('branch') or request.GET.get('branch')
+    if branch_id:
+        branch = get_object_or_404(Branch, pk=branch_id)
+
+    # ---- save the branch's per-country slab rates ----
+    if request.method == 'POST' and request.POST.get('action') == 'save_rates' and branch:
+        changes = []
+        with transaction.atomic():
+            for i in range(int(request.POST.get('rate_rows') or 0)):
+                country = (request.POST.get(f'country_{i}') or '').strip()
+                vals = {
+                    'rate_below_10': _dec_or_none(request.POST.get(f'below10_{i}')),
+                    'rate_10_to_20': _dec_or_none(request.POST.get(f'mid_{i}')),
+                    'rate_20_plus': _dec_or_none(request.POST.get(f'plus20_{i}')),
+                    'custom_insurance': _dec_or_none(request.POST.get(f'custom_{i}')),
+                }
+                existing = HubRate.objects.filter(branch=branch, country=country).first()
+                if all(v is None for v in vals.values()):
+                    if existing:
+                        existing.delete()
+                        changes.append(f'{country or "Default"}: cleared')
+                    continue
+                if existing and all(getattr(existing, k) == v for k, v in vals.items()):
+                    continue
+                HubRate.objects.update_or_create(branch=branch, country=country, defaults=vals)
+                changes.append(f'{country or "Default"}: <10kg {vals["rate_below_10"]}, '
+                               f'10–19.5kg {vals["rate_10_to_20"]}, 20kg+ {vals["rate_20_plus"]}, '
+                               f'custom {vals["custom_insurance"]}')
+        if changes:
+            log(request.user, f'HUB rates for {branch.name} — ' + '; '.join(changes))
+        messages.success(request, f'HUB rates saved for {branch.name}.')
+        url = f"{request.path}?branch={branch.pk}"
+        if request.POST.get('from') and request.POST.get('to'):
+            url += f"&from={request.POST['from']}&to={request.POST['to']}"
+            if request.POST.get('include_cancelled'):
+                url += '&include_cancelled=1'
+        return redirect(url)
+
+    branch_invoices = []
+    rows, totals = [], None
+    from_pk, to_pk = request.GET.get('from'), request.GET.get('to')
+    include_cancelled = bool(request.GET.get('include_cancelled'))
+    if branch:
+        branch_invoices = (Invoice.objects.filter(branch=branch)
+                           .select_related('parcel').order_by('pk'))
+        if from_pk and to_pk:
+            try:
+                rows = _hub_rows(_hub_invoices(branch, from_pk, to_pk, include_cancelled),
+                                 HubRateBook(branch))
+                totals = _hub_totals(rows)
+            except ValueError:
+                messages.error(request, 'Choose a valid invoice range.')
+
+    return render(request, 'panel/hub_calculation.html', {
+        'branches': branches, 'branch': branch,
+        'rate_table': _hub_rate_table(branch) if branch else [],
+        'branch_invoices': branch_invoices, 'rows': rows, 'totals': totals,
+        'from_pk': from_pk or '', 'to_pk': to_pk or '',
+        'include_cancelled': include_cancelled,
+    })
+
+
+@owner_required
+def hub_calculation_excel(request):
+    """Excel download of the calculation. Uses the per-row rate / custom /
+    remaining values the owner adjusted on screen. Formulas are live, so the
+    file still recalculates if a number is changed in Excel."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.worksheet.properties import PageSetupProperties
+
+    if request.method != 'POST':
+        return redirect('hub_calculation')
+    branch = get_object_or_404(Branch, pk=request.POST.get('branch'))
+    try:
+        invoices = _hub_invoices(branch, request.POST['from'], request.POST['to'],
+                                 bool(request.POST.get('include_cancelled')))
+    except (KeyError, ValueError):
+        messages.error(request, 'Choose a valid invoice range.')
+        return redirect(f"{reverse('hub_calculation')}?branch={branch.pk}")
+    rows = _hub_rows(invoices, HubRateBook(branch), request.POST)
+    if not rows:
+        messages.error(request, 'No invoices of this branch in that range.')
+        return redirect(f"{reverse('hub_calculation')}?branch={branch.pk}")
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Hub Calculation'
+
+    thin = Side(style='thin', color='000000')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    bold = Font(name='Arial', size=10, bold=True)
+    normal = Font(name='Arial', size=10)
+    head_fill = PatternFill('solid', start_color='D9E1F2')
+    total_fill = PatternFill('solid', start_color='FFF2CC')
+    money = '#,##0.00'
+
+    headers = ['Date', 'Sender Name', 'Receiver Name', 'Country', 'Weight', 'Total Income',
+               'Per Kg Rate', 'Custom + Insurance', 'Additional Charges', 'Remaining Charge',
+               'Hub Payment', 'Profit', 'Spot Commission', 'Branch Profit', 'Payment to hub',
+               'Invoice No']
+    widths = [18, 22, 24, 15, 9, 13, 11, 12, 12, 12, 13, 13, 13, 13, 14, 18]
+    for i, (h, w) in enumerate(zip(headers, widths), 1):
+        c = ws.cell(row=1, column=i, value=h)
+        c.font, c.fill, c.border = bold, head_fill, border
+        c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        ws.column_dimensions[c.column_letter].width = w
+    ws.row_dimensions[1].height = 30
+
+    for r, row in enumerate(rows, start=2):
+        values = [
+            row['date'], row['sender'], row['receiver'], row['country'],
+            float(row['weight']), float(row['income']), float(row['rate']),
+            float(row['custom']), float(row['additional']), float(row['remaining']),
+            f'=E{r}*G{r}+H{r}+I{r}',      # K Hub Payment
+            f'=F{r}-K{r}',                # L Profit
+            f'=0.3*L{r}',                 # M Spot Commission
+            f'=0.7*L{r}',                 # N Branch Profit
+            f'=K{r}+M{r}',                # O Payment to hub
+            row['inv'].invoice_no,
+        ]
+        for col, v in enumerate(values, 1):
+            c = ws.cell(row=r, column=col, value=v)
+            c.font, c.border = normal, border
+            if col == 1:
+                c.number_format = 'd mmmm yyyy'
+                c.alignment = Alignment(horizontal='right')
+            elif 6 <= col <= 15:
+                c.number_format = money
+
+    last = len(rows) + 1
+    t = last + 1
+    ws.cell(row=t, column=1, value='TOTAL')
+    for col in [5, 6, 8, 9, 10, 11, 12, 13, 14, 15]:
+        L = ws.cell(row=1, column=col).column_letter
+        ws.cell(row=t, column=col, value=f'=SUM({L}2:{L}{last})')
+    for col in range(1, 17):
+        c = ws.cell(row=t, column=col)
+        c.font, c.fill, c.border = bold, total_fill, border
+        if 6 <= col <= 15:
+            c.number_format = money
+
+    ws.freeze_panes = 'A2'
+    first_no, last_no = rows[0]['inv'].invoice_no, rows[-1]['inv'].invoice_no
+    title = f'{branch.name} — HUB calculation — {first_no} to {last_no}'
+
+    # print setup: landscape, one page wide, branch + range on every page
+    ws.page_setup.orientation = 'landscape'
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.print_title_rows = '1:1'
+    ws.print_area = f'A1:P{t}'
+    ws.oddHeader.center.text = title.replace('&', '&&')
+    ws.oddFooter.right.text = 'Page &P of &N'
+
+    # second sheet: what was used to make this calculation
+    info = wb.create_sheet('Info')
+    for i, (k, v) in enumerate([
+        ('Branch', branch.name),
+        ('Invoice range', f'{first_no} to {last_no}'),
+        ('Invoices included', len(rows)),
+        ('Spot commission', '30% of profit'),
+        ('Branch profit', '70% of profit'),
+        ('Generated by', request.user.get_full_name() or request.user.username),
+        ('Generated at', timezone.localtime().strftime('%d %b %Y %H:%M')),
+    ], start=1):
+        info.cell(row=i, column=1, value=k).font = bold
+        info.cell(row=i, column=2, value=v)
+
+    # saved HUB rate table for this branch (blank cells use the Default row)
+    r0 = i + 2
+    info.cell(row=r0, column=1, value='HUB rates (per kg)').font = bold
+    for col, h in enumerate(['Country', 'Below 10 kg', '10–19.5 kg', '20 kg +',
+                             'Custom + Insurance'], 1):
+        c = info.cell(row=r0 + 1, column=col, value=h)
+        c.font, c.fill, c.border = bold, head_fill, border
+    rr = r0 + 2
+    for hr in branch.hub_rates.all():
+        vals = [hr.country or 'Default (all other countries)', hr.rate_below_10,
+                hr.rate_10_to_20, hr.rate_20_plus, hr.custom_insurance]
+        for col, v in enumerate(vals, 1):
+            c = info.cell(row=rr, column=col,
+                          value=float(v) if isinstance(v, Decimal) else (v if v is not None else '—'))
+            c.border = border
+        rr += 1
+    info.column_dimensions['A'].width = 30
+    info.column_dimensions['B'].width = 40
+    for L in 'CDE':
+        info.column_dimensions[L].width = 18
+
+    buf = BytesIO()
+    wb.save(buf)
+    safe_branch = re.sub(r'[^\w\s-]', '', branch.name).strip() or 'Branch'
+    filename = f'HUB {safe_branch} {first_no} to {last_no}.xlsx'
+    resp = HttpResponse(buf.getvalue(),
+                        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    resp['Content-Disposition'] = f'attachment; filename="{filename}"'
+    log(request.user, f'HUB calculation Excel downloaded: {branch.name} {first_no} → {last_no} '
+                      f'({len(rows)} invoices)')
+    return resp
 
 
 @owner_required

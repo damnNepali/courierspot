@@ -21,6 +21,66 @@ class Branch(models.Model):
         return self.name
 
 
+HUB_CUSTOM_INSURANCE = Decimal('800.00')  # hub's fixed custom + insurance per parcel
+
+
+class HubRate(models.Model):
+    """What the HUB charges a branch per kg, per destination country.
+    Three weight slabs: below 10 kg, 10–19.5 kg, 20 kg and above.
+    country='' is the branch DEFAULT row, used for any country (or any slab)
+    that has no rate of its own."""
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='hub_rates')
+    country = models.CharField(max_length=80, blank=True, default='',
+                               help_text='Blank = default for all other countries')
+    rate_below_10 = models.DecimalField('Rate below 10 kg (per kg)', max_digits=12,
+                                        decimal_places=2, null=True, blank=True)
+    rate_10_to_20 = models.DecimalField('Rate 10–19.5 kg (per kg)', max_digits=12,
+                                        decimal_places=2, null=True, blank=True)
+    rate_20_plus = models.DecimalField('Rate 20 kg + (per kg)', max_digits=12,
+                                       decimal_places=2, null=True, blank=True)
+    custom_insurance = models.DecimalField(max_digits=12, decimal_places=2,
+                                           null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('branch', 'country')]
+        ordering = ['branch', 'country']
+
+    @staticmethod
+    def slab_field(weight):
+        weight = Decimal(weight or 0)
+        if weight >= 20:
+            return 'rate_20_plus'
+        if weight >= 10:
+            return 'rate_10_to_20'
+        return 'rate_below_10'
+
+    def __str__(self):
+        return f'HUB rates — {self.branch.name} — {self.country or "Default"}'
+
+
+class HubRateBook:
+    """All HUB rates of one branch, loaded once. Looks up country row first,
+    then the branch default row, then 0 (rate) / NPR 800 (custom)."""
+    def __init__(self, branch):
+        self.by_country = {r.country.strip().lower(): r for r in branch.hub_rates.all()}
+        self.default = self.by_country.get('')
+
+    def _pick(self, country, field):
+        row = self.by_country.get((country or '').strip().lower())
+        for r in (row, self.default):
+            if r is not None and getattr(r, field) is not None:
+                return getattr(r, field)
+        return None
+
+    def rate_for(self, country, weight):
+        return self._pick(country, HubRate.slab_field(weight)) or Decimal('0.00')
+
+    def custom_for(self, country):
+        v = self._pick(country, 'custom_insurance')
+        return HUB_CUSTOM_INSURANCE if v is None else v
+
+
 class Invoice(models.Model):
     """One invoice per parcel. Money fields are snapshots — if the rate
     changes later, old invoices keep the price the customer actually paid."""
