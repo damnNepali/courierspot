@@ -920,7 +920,8 @@ def nepal_post_invoice_excel(request, pk):
     resp = HttpResponse(
         buf.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    resp['Content-Disposition'] = (f'attachment; filename="{safe_name} {ctx['invoice_no']} '
+    np_invoice_no = ctx['invoice_no']
+    resp['Content-Disposition'] = (f'attachment; filename="{safe_name} {np_invoice_no} '
                                    f'Nepal Post.xlsx"')
     log(request.user, f'{parcel.tracking_id}: Nepal Post Excel invoice downloaded')
     return resp
