@@ -137,6 +137,14 @@
         </a>
 
         <a
+            class="btn navy"
+            href="{% url 'nepal_post_invoice' parcel.invoice.pk %}"
+            target="_blank"
+        >
+            📮 Nepal Post Invoice
+        </a>
+
+        <a
             class="btn"
             href="{% url 'invoice_print' parcel.invoice.pk %}"
         >

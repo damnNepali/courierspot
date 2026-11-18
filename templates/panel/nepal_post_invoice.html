@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ invoice_no }} — Nepal Post Invoice</title>
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #eef1f5; font-family: Calibri, Arial, sans-serif; color: #000; font-size: 12.5px; }
+  .toolbar { max-width: 210mm; margin: 16px auto; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding: 0 12px; }
+  .toolbar a, .toolbar button { font: 600 14px Arial, sans-serif; padding: 9px 16px; border-radius: 8px; border: 1px solid #0B2545; background: #fff; color: #0B2545; text-decoration: none; cursor: pointer; }
+  .np-hint { max-width: 210mm; margin: 0 auto 10px; padding: 9px 14px; border-radius: 8px; background: #fff7ed; border: 1px solid #fdba74; font: 13px Arial, sans-serif; color: #7c2d12; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .np-hint button { font: 600 13px Arial, sans-serif; padding: 6px 12px; border-radius: 6px; border: 1px solid #7c2d12; background: #fff; color: #7c2d12; cursor: pointer; }
+  .np-hint .over { color: #b91c1c; font-weight: 700; }
+  .nm, .qt { outline: none; border-radius: 3px; text-transform: uppercase; }
+  .nm:hover, .qt:hover { background: #fff7d6; box-shadow: 0 0 0 1px #f59e0b; }
+  .nm:focus, .qt:focus { background: #fff7d6; box-shadow: 0 0 0 2px #f59e0b; }
+  .qt { display: inline-block; min-width: 24px; }
+  td.namecell { position: relative; padding-right: 26px; }
+  .rm { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); width: 19px; height: 19px; line-height: 15px; padding: 0; border-radius: 50%; border: 1px solid #ef4444; background: #fff; color: #ef4444; font-size: 13px; cursor: pointer; }
+  .rm:hover { background: #ef4444; color: #fff; }
+  tr.removed { display: none; }
+  .toolbar a.active { background: #0B2545; color: #fff; }
+  .toolbar .primary { background: #EF4413; border-color: #EF4413; color: #fff; }
+  .page { width: 210mm; min-height: 277mm; margin: 0 auto 24px; background: #fff; padding: 10mm; }
+  .frame { border: 1.5px solid #000; padding: 10px 12px; min-height: 255mm; display: flex; flex-direction: column; }
+  h1 { text-align: center; font-size: 17px; margin: 0 0 10px; letter-spacing: 1px; }
+  .top { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+  .boxed { border: 1.5px solid #000; padding: 6px 9px; line-height: 1.45; overflow-wrap: anywhere; }
+  .left { width: 52%; }
+  .meta { width: 40%; }
+  .consignee { margin-top: 10px; }
+  .label { font-weight: 700; }
+  .upper { text-transform: uppercase; }
+  table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+  th, td { border: 1px solid #000; padding: 3px 6px; }
+  th { font-weight: 700; text-align: center; }
+  td.c { text-align: center; } td.r { text-align: right; }
+  tr.boxrow td { font-weight: 700; text-align: center; background: #f2f2f2; }
+  tr.total td { font-weight: 700; }
+  .words { margin-top: 8px; font-weight: 700; line-height: 1.6; }
+  .footer { margin-top: auto; padding-top: 18px; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
+  .decl { width: 58%; line-height: 1.45; }
+  .sign { width: 34%; text-align: center; border-top: 1px solid #000; padding-top: 4px; font-weight: 700; }
+  .msg { padding: 10px 14px; border-radius: 8px; margin-bottom: 6px; font: 14px Arial, sans-serif; background: #e8f0fe; }
+  .msg.success { background: #e6f6ea; color: #14532d; }
+  .msg.error { background: #fde8e8; color: #991b1b; }
+  .editor { max-width: 210mm; margin: 0 auto 16px; background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px 16px; font-family: Arial, sans-serif; font-size: 14px; }
+  .ed-head, .ed-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ed-head span { color: #64748B; font-size: 13px; }
+  .ed-table { margin: 10px 0; }
+  .ed-table th, .ed-table td { border: none; border-bottom: 1px solid #e2e8f0; padding: 6px; }
+  .ed-table th { text-align: left; color: #475569; font-size: 12.5px; }
+  .ed-table input { width: 100px; padding: 6px; border: 1px solid #94a3b8; border-radius: 6px; font-size: 14px; text-align: right; }
+  .ed-foot .warn { color: #b91c1c; font-weight: 700; }
+  .ed-foot button { font: 600 14px Arial, sans-serif; padding: 9px 16px; border-radius: 8px; border: 1px solid #EF4413; background: #EF4413; color: #fff; cursor: pointer; }
+  .ed-foot button:disabled { opacity: .45; cursor: not-allowed; }
+
+  @media print {
+    body { background: #fff; }
+    .toolbar, .no-print, .rm { display: none !important; }
+    td.namecell { padding-right: 6px; }
+    .nm, .qt { background: none !important; box-shadow: none !important; }
+    .page { margin: 0; padding: 0; width: auto; min-height: 0; }
+    .frame { min-height: 274mm; }
+    tr { page-break-inside: avoid; }
+  }
+  @media screen and (max-width: 820px) {
+    .page { width: auto; margin: 0 12px 24px; padding: 12px; }
+    .top { flex-direction: column; }
+    .left, .meta { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <a href="{% url 'parcel_detail' parcel.pk %}">← Back to Parcel</a>
+  {% if multi %}{% for n in box_nums %}<a href="?box={{ n }}"{% if n == box_no %} class="active"{% endif %}>Box {{ n }}</a>{% endfor %}{% endif %}
+  <a href="{% url 'nepal_post_invoice_excel' inv.pk %}?box={{ box_no }}">📊 Download Excel</a>
+  <button class="primary" onclick="npPrint()">🖨 Print / Save as PDF</button>
+</div>
+
+{% if messages %}
+<div class="no-print" style="max-width:210mm;margin:0 auto 12px;padding:0 12px">
+  {% for m in messages %}
+    <div class="msg {{ m.tags }}">{{ m }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if request.user.is_owner and rows %}
+<form method="post" action="?box={{ box_no }}" class="editor no-print" id="rateForm">
+  {% csrf_token %}
+  <div class="ed-head">
+    <b>Edit declared rates (USD){% if multi %} — Box {{ box_no }} of {{ box_count }}{% endif %}</b>
+    <span>Total must not exceed USD {{ max_total|floatformat:0 }} · items without a value are $1</span>
+  </div>
+  <table class="ed-table">
+    <thead><tr><th>Item</th><th>Qty</th><th>Rate (USD)</th><th>Amount</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td class="c">{{ r.qty }}</td>
+        <td class="c"><input type="number" name="rate_{{ r.id }}" value="{{ r.rate|floatformat:2 }}"
+                             min="0.01" step="0.01" data-qty="{{ r.qty }}" required></td>
+        <td class="c amt">{{ r.amount|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="ed-foot">
+    <span>Total: <b>USD <span id="edTotal">{{ total_amount|floatformat:2 }}</span></b>
+      <span id="edWarn" class="warn" hidden>— over USD {{ max_total|floatformat:0 }}, lower the rates</span></span>
+    <button type="submit" id="edSave" class="primary">💾 Save Rates</button>
+  </div>
+</form>
+<script>
+(function () {
+  var max = {{ max_total|stringformat:"s" }};
+  var form = document.getElementById('rateForm');
+  function recalc() {
+    var total = 0;
+    form.querySelectorAll('input[data-qty]').forEach(function (inp) {
+      var amt = (parseFloat(inp.value) || 1) * parseInt(inp.dataset.qty, 10);
+      inp.closest('tr').querySelector('.amt').textContent = amt.toFixed(2);
+      total += amt;
+    });
+    total = Math.round(total * 100) / 100;
+    document.getElementById('edTotal').textContent = total.toFixed(2);
+    var over = total > max;
+    document.getElementById('edWarn').hidden = !over;
+    document.getElementById('edSave').disabled = over;
+  }
+  form.addEventListener('input', recalc);
+  recalc();
+})();
+</script>
+{% endif %}
+
+{% if rows %}
+<div class="np-hint no-print" id="npHint">
+  <span>✏️ Click an <b>item name</b> or <b>qty</b> on the invoice to change it · <b>✕</b> removes a line.
+    For printing only, nothing is saved. <span id="npOver" class="over" hidden></span></span>
+  <button type="button" onclick="npReset()">↺ Reset to original</button>
+</div>
+{% endif %}
+
+<div class="page">
+ <div class="frame" id="sheet">
+  <h1>INVOICE</h1>
+
+  <div class="top">
+    <div class="left">
+      <div class="boxed">
+        <div class="label">SHIPPER</div>
+        <div class="label">{{ shipper.name }}</div>
+        <div class="upper">{{ parcel.branch.address }}</div>
+        <div class="upper">{{ parcel.branch.location }}, NEPAL</div>
+        <div>EXIM CODE: {{ shipper.exim }}</div>
+        <div>PAN NUMBER: {{ shipper.pan }}</div>
+        <div>PHONE: {{ shipper.phone }}</div>
+      </div>
+
+      <div class="boxed consignee">
+        <div class="label">CONSIGNEE</div>
+        <div class="label upper">{{ parcel.receiver_name }}</div>
+        <div class="upper">{{ parcel.receiver_address }}</div>
+        <div class="upper">{{ parcel.destination_country }}</div>
+        <div>Phone: {{ parcel.receiver_phone }}</div>
+        {% if parcel.receiver_email %}<div>Email: {{ parcel.receiver_email }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="boxed meta">
+      <div class="label">HAWB: {{ parcel.tracking_id }}</div>
+      <div>DATE: {{ inv.created_at|date:"Y-m-d" }}</div>
+      <div>Invoice No: {{ invoice_no }}</div>
+      <div style="margin-top:6px">Currency: USD</div>
+      <div>MODE OF SHIPMENT: BY AIR (NEPAL POST)</div>
+      <div>T/WEIGHT KG: {{ weight|floatformat:2 }}</div>
+      <div>T/PCS: {{ pcs }}</div>
+      <div>Country of Origin: NEPAL</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:7%">S.N.</th>
+        <th style="text-align:left">Description</th>
+        <th style="width:8%">Qty</th>
+        <th style="width:10%">Qty Code</th>
+        <th style="width:11%">Rate (USD)</th>
+        <th style="width:13%">Amount (USD)</th>
+        <th style="width:12%">Weight (KG)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        {% if multi_box and r.first_in_box %}
+          <tr class="boxrow"><td colspan="7">BOX {{ r.box_no|stringformat:"02d" }}</td></tr>
+        {% endif %}
+        <tr class="item" data-id="{{ r.id }}" data-rate="{{ r.rate|stringformat:'s' }}" data-name="{{ r.name }}" data-qty="{{ r.qty }}">
+          <td class="c sn">{{ r.sn }}</td>
+          <td class="namecell"><span class="nm" contenteditable="true" spellcheck="false">{{ r.name }}</span><button type="button" class="rm" title="Remove from this printout">×</button></td>
+          <td class="c"><span class="qt" contenteditable="true">{{ r.qty }}</span></td>
+          <td class="c">Piece</td>
+          <td class="c">{{ r.rate|floatformat:2 }}</td>
+          <td class="c amt">{{ r.amount|floatformat:2 }}</td>
+          <td class="c wt">{% if r.first_in_box %}{{ r.box_weight|floatformat:"-2" }}{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="c">No items recorded for this shipment.</td></tr>
+      {% endfor %}
+      <tr class="total">
+        <td></td>
+        <td>TOTAL</td>
+        <td class="c" id="totQty">{{ total_qty }}</td>
+        <td></td>
+        <td></td>
+        <td class="c" id="totAmt">{{ total_amount|floatformat:2 }}</td>
+        <td class="c">{{ weight|floatformat:"-2" }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="words">
+    <div>Total Quantity in Words (PCS): <span id="qtyWords">{{ qty_words }}</span></div>
+    <div>Total Amount in Words: <span id="amtWords">{{ amount_words }}</span></div>
+  </div>
+
+  <div class="footer">
+    <div class="decl">
+      <div class="label">Declaration:</div>
+      We declare that this invoice shows the actual price of the goods described and that
+      all particulars are true and correct. Above goods are only for gifts and sample, not
+      for commercial. Value is only for custom purpose.
+    </div>
+    <div class="sign">Signature &amp; Stamp</div>
+  </div>
+ </div>
+</div>
+
+<script>
+/* Print-only edits: item name, qty and removing lines. Kept in this browser
+   only (so a refresh or "Save Rates" doesn't lose them) — never sent to the server. */
+(function () {
+  var MAX = {{ max_total|stringformat:"s" }};
+  var KEY = 'np-edits-{{ inv.pk }}-{{ box_no }}';
+  var WEIGHT = '{% if box %}{{ box.weight|floatformat:"-2" }}{% endif %}';
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.item'));
+  if (!rows.length) { window.npPrint = function () { window.print(); }; return; }
+
+  var ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  var TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  function below1000(n) {
+    var p = [];
+    if (n >= 100) { p.push(ONES[Math.floor(n / 100)] + ' Hundred'); n %= 100; }
+    if (n >= 20) p.push(TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10] : ''));
+    else if (n) p.push(ONES[n]);
+    return p.join(' ');
+  }
+  function words(n) {
+    if (n === 0) return 'Zero';
+    var p = [];
+    [[1e6, 'Million'], [1e3, 'Thousand']].forEach(function (d) {
+      if (n >= d[0]) { p.push(below1000(Math.floor(n / d[0])) + ' ' + d[1]); n %= d[0]; }
+    });
+    if (n) p.push(below1000(n));
+    return p.join(' ');
+  }
+  function usdWords(cents) {
+    var d = Math.floor(cents / 100), c = cents % 100;
+    return 'USD ' + words(d) + (c ? ' And ' + (c < 10 ? '0' : '') + c + '/100' : '') + ' Only.';
+  }
+
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save(state) { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var state = load();
+
+  function qtyOf(tr) {
+    var q = parseInt(tr.querySelector('.qt').textContent.replace(/[^0-9]/g, ''), 10);
+    return isNaN(q) ? 0 : q;
+  }
+  var lastTotal = 0;
+  function recalc() {
+    var sn = 0, totQty = 0, totCents = 0, first = true;
+    rows.forEach(function (tr) {
+      var wt = tr.querySelector('.wt');
+      if (tr.classList.contains('removed')) { wt.textContent = ''; return; }
+      sn += 1;
+      tr.querySelector('.sn').textContent = sn;
+      var q = qtyOf(tr);
+      var cents = Math.round(parseFloat(tr.dataset.rate) * 100) * q;
+      tr.querySelector('.amt').textContent = (cents / 100).toFixed(2);
+      totQty += q; totCents += cents;
+      wt.textContent = first ? WEIGHT : '';
+      first = false;
+    });
+    document.getElementById('totQty').textContent = totQty;
+    document.getElementById('totAmt').textContent = (totCents / 100).toFixed(2);
+    document.getElementById('qtyWords').textContent = words(totQty) + ' Only.';
+    document.getElementById('amtWords').textContent = usdWords(totCents);
+    lastTotal = totCents / 100;
+    var over = document.getElementById('npOver');
+    over.hidden = lastTotal <= MAX;
+    over.textContent = '⚠ Total USD ' + lastTotal.toFixed(2) + ' is over USD ' + MAX + ' — lower a qty or remove a line.';
+  }
+  function remember(tr) {
+    var nm = tr.querySelector('.nm').textContent.trim().toUpperCase();
+    var q = qtyOf(tr);
+    var s = {};
+    if (nm !== tr.dataset.name) s.name = nm;
+    if (String(q) !== tr.dataset.qty) s.qty = q;
+    if (tr.classList.contains('removed')) s.del = 1;
+    if (Object.keys(s).length) state[tr.dataset.id] = s; else delete state[tr.dataset.id];
+    save(state);
+  }
+
+  rows.forEach(function (tr) {
+    var s = state[tr.dataset.id];
+    if (s) {
+      if (s.name) tr.querySelector('.nm').textContent = s.name;
+      if (s.qty !== undefined) tr.querySelector('.qt').textContent = s.qty;
+      if (s.del) tr.classList.add('removed');
+    }
+    var nm = tr.querySelector('.nm'), qt = tr.querySelector('.qt');
+    [nm, qt].forEach(function (el) {
+      el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+      el.addEventListener('input', function () { recalc(); remember(tr); });
+      el.addEventListener('blur', function () {
+        if (el === nm) { el.textContent = el.textContent.trim().toUpperCase() || tr.dataset.name; }
+        else { el.textContent = qtyOf(tr) || 1; }
+        recalc(); remember(tr);
+      });
+    });
+    qt.addEventListener('paste', function (e) { e.preventDefault(); });
+    tr.querySelector('.rm').addEventListener('click', function () {
+      tr.classList.add('removed'); recalc(); remember(tr);
+    });
+  });
+
+  window.npReset = function () {
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    state = {};
+    rows.forEach(function (tr) {
+      tr.classList.remove('removed');
+      tr.querySelector('.nm').textContent = tr.dataset.name;
+      tr.querySelector('.qt').textContent = tr.dataset.qty;
+    });
+    recalc();
+  };
+  window.npPrint = function () {
+    if (lastTotal > MAX) {
+      alert('Total is USD ' + lastTotal.toFixed(2) + '. It cannot be more than USD ' + MAX + '.\nLower a quantity or remove a line before printing.');
+      return;
+    }
+    window.print();
+  };
+  recalc();
+})();
+</script>
+
+<script>
+/* Many items? Shrink slightly when printing so it stays on ONE A4 page. */
+(function () {
+  var sheet = document.getElementById('sheet');
+  var PAGE_PX = 277 * 96 / 25.4, WIDTH_PX = 190 * 96 / 25.4;
+  window.addEventListener('beforeprint', function () {
+    sheet.style.zoom = 1; sheet.style.minHeight = '0'; sheet.style.width = WIDTH_PX + 'px';
+    var z = Math.min(1, (PAGE_PX - 4) / sheet.scrollHeight);
+    sheet.style.zoom = z;
+    sheet.style.minHeight = ((PAGE_PX - 4) / z) + 'px';
+  });
+  window.addEventListener('afterprint', function () {
+    sheet.style.zoom = ''; sheet.style.minHeight = ''; sheet.style.width = '';
+  });
+})();
+</script>
+
+</body>
+</html>

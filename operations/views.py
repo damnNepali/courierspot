@@ -670,6 +670,261 @@ def hub_invoice_excel(request, pk):
     resp['Content-Disposition'] = f'attachment; filename="{filename}"'
     log(request.user, f'{parcel.tracking_id}: HUB Excel invoice downloaded')
     return resp
+
+
+# ---------- NEPAL POST commercial invoice (print / PDF + Excel) ----------
+NEPAL_POST_SHIPPER = {
+    'name': 'COURIER SPOT PVT. LTD.',
+    'pan': '623653526',
+    'exim': '6236535260160NP',
+    'phone': '014975477',
+}
+NEPAL_POST_MAX_TOTAL_USD = Decimal('149.00')
+NEPAL_POST_DEFAULT_RATE_USD = Decimal('1.00')  # used when an item has no USD value (0)
+
+
+def _np_rate(value):
+    """Declared USD rate for the Nepal Post invoice — 0/blank becomes $1."""
+    return value if value and value > 0 else NEPAL_POST_DEFAULT_RATE_USD
+
+
+def _words_title(n):
+    """Integer -> 'Sixty-One' style words (title case, hyphenated tens)."""
+    if n == 0:
+        return 'Zero'
+    words = amount_in_words_usd(n)[:-len(' ONLY')]
+    words = re.sub(r'\b(TWENTY|THIRTY|FORTY|FIFTY|SIXTY|SEVENTY|EIGHTY|NINETY) '
+                   r'(ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE)\b', r'\1-\2', words)
+    return words.title()
+
+
+def usd_in_words(amount):
+    """Decimal('51.40') -> 'USD Fifty-One And 40/100 Only.'"""
+    amount = Decimal(amount).quantize(Decimal('0.01'))
+    dollars = int(amount)
+    cents = int((amount - dollars) * 100)
+    text = f'USD {_words_title(dollars)}'
+    if cents:
+        text += f' And {cents:02d}/100'
+    return text + ' Only.'
+
+
+def _np_box_no(request):
+    try:
+        return max(1, int(request.GET.get('box', 1)))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _nepal_post_context(invoice, box_no=1):
+    """One Nepal Post invoice per BOX. Multi-box parcels get one invoice for
+    each box (chosen with ?box=N); a single-box parcel works as before."""
+    parcel = invoice.parcel
+    all_boxes = list(parcel.boxes.prefetch_related('items').order_by('id'))
+    box_count = len(all_boxes)
+    box_no = min(box_no, box_count) if box_count else 1
+    box = all_boxes[box_no - 1] if box_count else None
+    rows = []
+    if box:
+        for ii, item in enumerate(box.items.all()):
+            rate = _np_rate(item.unit_value_usd)
+            rows.append({
+                'id': item.id, 'sn': ii + 1, 'box_no': box_no, 'first_in_box': ii == 0,
+                'name': item.name.upper(), 'qty': item.quantity, 'rate': rate,
+                'amount': (rate * item.quantity).quantize(Decimal('0.01')),
+                'box_weight': box.weight,
+            })
+    total_qty = sum(r['qty'] for r in rows)
+    total_amount = sum((r['amount'] for r in rows), Decimal('0.00'))
+    multi = box_count > 1
+    return {
+        'inv': invoice, 'parcel': parcel, 'shipper': NEPAL_POST_SHIPPER,
+        'rows': rows, 'multi_box': False,
+        'box': box, 'box_no': box_no, 'box_count': box_count, 'multi': multi,
+        'box_nums': range(1, box_count + 1),
+        'invoice_no': f'{invoice.invoice_no}-B{box_no}' if multi else invoice.invoice_no,
+        'weight': box.weight if box else invoice.total_weight, 'pcs': 1,
+        'total_qty': total_qty, 'total_amount': total_amount,
+        'qty_words': f'{_words_title(total_qty)} Only.',
+        'amount_words': usd_in_words(total_amount),
+        'max_total': NEPAL_POST_MAX_TOTAL_USD,
+    }
+
+
+@panel_required
+def nepal_post_invoice(request, pk):
+    """Printable Nepal Post commercial invoice. `pk` is the Invoice pk.
+    Use the browser's Print dialog to print or 'Save as PDF'."""
+    invoice = get_object_or_404(branch_scope(
+        Invoice.objects.select_related('parcel', 'parcel__branch'), request.user), pk=pk)
+    box_no = _np_box_no(request)
+    back = f"{reverse('nepal_post_invoice', args=[pk])}?box={box_no}"
+    if request.method == 'POST':
+        # Owner-only: edit declared USD rates of THIS box. Box total must stay <= $149.
+        if not request.user.is_owner:
+            return HttpResponseForbidden('Only the owner can edit invoice rates.')
+        box = _nepal_post_context(invoice, box_no)['box']
+        items = list(box.items.all()) if box else []
+        new_rates = {}
+        try:
+            for item in items:
+                raw = request.POST.get(f'rate_{item.id}')
+                if raw is None:
+                    continue
+                rate = _np_rate(Decimal(raw.strip() or '0')).quantize(Decimal('0.01'))
+                if rate < 0:
+                    raise InvalidOperation
+                new_rates[item.id] = rate
+        except InvalidOperation:
+            messages.error(request, 'Enter valid rates (numbers, 0 or more).')
+            return redirect(back)
+        total = sum((new_rates.get(i.id, _np_rate(i.unit_value_usd)) * i.quantity for i in items),
+                    Decimal('0.00'))
+        if total > NEPAL_POST_MAX_TOTAL_USD:
+            messages.error(request, f'Total would be USD {total} — it cannot be more than '
+                                    f'USD {NEPAL_POST_MAX_TOTAL_USD}. Nothing was saved.')
+            return redirect(back)
+        changes = []
+        for item in items:
+            if item.id in new_rates and new_rates[item.id] != item.unit_value_usd:
+                changes.append(f'{item.name} {item.unit_value_usd} → {new_rates[item.id]}')
+                item.unit_value_usd = new_rates[item.id]
+                item.save(update_fields=['unit_value_usd'])
+        if changes:
+            log(request.user, f'{invoice.parcel.tracking_id} box {box_no}: invoice USD rates edited '
+                              f'({"; ".join(changes)}), total USD {total}')
+            messages.success(request, f'Rates saved. Total value: USD {total}.')
+        else:
+            messages.info(request, 'No rate changes.')
+        return redirect(back)
+    return render(request, 'panel/nepal_post_invoice.html', _nepal_post_context(invoice, box_no))
+
+
+@panel_required
+def nepal_post_invoice_excel(request, pk):
+    """Same Nepal Post invoice as an editable Excel file (live formulas)."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, Border, Side
+        from openpyxl.worksheet.properties import PageSetupProperties
+    except ImportError:
+        messages.error(request, 'openpyxl is not installed — run: pip install openpyxl')
+        return redirect('nepal_post_invoice', pk=pk)
+
+    invoice = get_object_or_404(branch_scope(
+        Invoice.objects.select_related('parcel', 'parcel__branch'), request.user), pk=pk)
+    ctx = _nepal_post_context(invoice, _np_box_no(request))
+    parcel, sh = ctx['parcel'], ctx['shipper']
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Nepal Post Invoice'
+    thin = Side(style='thin', color='000000')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    for col, w in {'A': 6, 'B': 40, 'C': 8, 'D': 10, 'E': 11, 'F': 13, 'G': 12}.items():
+        ws.column_dimensions[col].width = w
+
+    def cell(ref, value='', bold=False, align=left, size=11):
+        c = ws[ref]
+        c.value = value
+        c.font = Font(name='Calibri', size=size, bold=bold)
+        c.alignment = align
+        return c
+
+    def box(ref):
+        for row in ws[ref]:
+            for c in row:
+                c.border = border
+
+    ws.merge_cells('A1:G1'); cell('A1', 'INVOICE', bold=True, align=center, size=16)
+
+    shipper = ['SHIPPER', sh['name'], parcel.branch.address, f"{parcel.branch.location}, NEPAL",
+               f"EXIM CODE: {sh['exim']}", f"PAN NUMBER: {sh['pan']}", f"PHONE: {sh['phone']}"]
+    info = [f"HAWB: {parcel.tracking_id}",
+            f"DATE: {timezone.localtime(invoice.created_at):%Y-%m-%d}",
+            f"Invoice No: {ctx['invoice_no']}", 'Currency: USD',
+            'MODE OF SHIPMENT: BY AIR (NEPAL POST)',
+            f"T/WEIGHT KG: {ctx['weight']}", f"T/PCS: {ctx['pcs']}",
+            'Country of Origin: NEPAL']
+    for i in range(max(len(shipper), len(info))):
+        r = 2 + i
+        ws.merge_cells(f'A{r}:C{r}'); ws.merge_cells(f'E{r}:G{r}')
+        if i < len(shipper):
+            cell(f'A{r}', shipper[i], bold=i < 2)
+        if i < len(info):
+            cell(f'E{r}', info[i], bold=i == 0)
+    box(f'A2:C{1 + len(shipper)}'); box(f'E2:G{1 + len(info)}')
+
+    r = 3 + max(len(shipper), len(info))
+    consignee = ['CONSIGNEE', parcel.receiver_name.upper(), parcel.receiver_address.upper(),
+                 parcel.destination_country.upper(), f'Phone: {parcel.receiver_phone}']
+    if parcel.receiver_email:
+        consignee.append(f'Email: {parcel.receiver_email}')
+    start = r
+    for i, line in enumerate(consignee):
+        ws.merge_cells(f'A{r}:D{r}'); cell(f'A{r}', line, bold=i < 2); r += 1
+    box(f'A{start}:D{r - 1}')
+
+    r += 1
+    hdr = r
+    for col, text in zip('ABCDEFG', ['S.N.', 'Description', 'Qty', 'Qty Code',
+                                     'Rate (USD)', 'Amount (USD)', 'Weight (KG)']):
+        cell(f'{col}{hdr}', text, bold=True, align=center)
+    r += 1
+    for row in ctx['rows']:
+        if ctx['multi_box'] and row['first_in_box']:
+            ws.merge_cells(f'A{r}:G{r}')
+            cell(f'A{r}', f"BOX {row['box_no']:02d}", bold=True, align=center); r += 1
+        cell(f'A{r}', row['sn'], align=center)
+        cell(f'B{r}', row['name'])
+        cell(f'C{r}', row['qty'], align=center)
+        cell(f'D{r}', 'Piece', align=center)
+        cell(f'E{r}', float(row['rate']), align=center)
+        cell(f'F{r}', f'=C{r}*E{r}', align=center)
+        cell(f'G{r}', float(row['box_weight']) if row['first_in_box'] else '', align=center)
+        r += 1
+    for _ in range(3):  # spare rows for hand-added items
+        cell(f'F{r}', f'=IF(C{r}*E{r}=0,"",C{r}*E{r})', align=center)
+        r += 1
+    first, last = hdr + 1, r - 1
+    cell(f'B{r}', 'TOTAL', bold=True)
+    cell(f'C{r}', f'=SUM(C{first}:C{last})', bold=True, align=center)
+    cell(f'F{r}', f'=SUM(F{first}:F{last})', bold=True, align=center)
+    cell(f'G{r}', float(ctx['weight']), bold=True, align=center)
+    box(f'A{hdr}:G{r}')
+    r += 1
+    ws.merge_cells(f'A{r}:G{r}')
+    cell(f'A{r}', f"Total Quantity in Words (PCS): {ctx['qty_words']}", bold=True); r += 1
+    ws.merge_cells(f'A{r}:G{r}')
+    cell(f'A{r}', f"Total Amount in Words: {ctx['amount_words']}", bold=True); r += 2
+    cell(f'A{r}', 'Declaration:', bold=True); r += 1
+    ws.merge_cells(f'A{r}:D{r + 2}')
+    cell(f'A{r}', 'We declare that this invoice shows the actual price of the goods described '
+                  'and that all particulars are true and correct. Above goods are only for '
+                  'gifts and sample, not for commercial. Value is only for custom purpose.')
+    ws.merge_cells(f'E{r + 2}:G{r + 2}')
+    cell(f'E{r + 2}', 'Signature & Stamp', bold=True, align=center)
+    ws[f'E{r + 2}'].border = Border(top=thin)
+    r += 2
+
+    ws.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 1
+    ws.print_area = f'A1:G{r}'
+
+    buf = BytesIO()
+    wb.save(buf)
+    safe_name = re.sub(r'[^\w\s-]', '', parcel.receiver_name).strip() or 'NepalPost'
+    resp = HttpResponse(
+        buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    resp['Content-Disposition'] = (f'attachment; filename="{safe_name} {ctx['invoice_no']} '
+                                   f'Nepal Post.xlsx"')
+    log(request.user, f'{parcel.tracking_id}: Nepal Post Excel invoice downloaded')
+    return resp
+
 # ---------- expenses ----------
 
 @panel_required

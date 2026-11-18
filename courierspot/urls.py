@@ -59,6 +59,8 @@ urlpatterns = [
     path('panel/parcels/<int:pk>/edit/', ops.parcel_edit, name='parcel_edit'),
     path('panel/invoices/<int:pk>/print/', ops.invoice_print, name='invoice_print'),
     path('panel/invoices/<int:pk>/hub-excel/', ops.hub_invoice_excel, name='hub_invoice_excel'),
+    path('panel/invoices/<int:pk>/nepal-post/', ops.nepal_post_invoice, name='nepal_post_invoice'),
+    path('panel/invoices/<int:pk>/nepal-post-excel/', ops.nepal_post_invoice_excel, name='nepal_post_invoice_excel'),
     path('panel/expenses/', ops.expenses, name='expenses'),
 
     # owner-only
