@@ -678,6 +678,9 @@ NEPAL_POST_SHIPPER = {
     'pan': '623653526',
     'exim': '6236535260160NP',
     'phone': '014975477',
+    # Fixed head-office address — same on every branch's Nepal Post invoice.
+    'address': 'BASUNDHARA',
+    'city': 'KATHMANDU, NEPAL',
 }
 NEPAL_POST_MAX_TOTAL_USD = Decimal('149.00')
 NEPAL_POST_DEFAULT_RATE_USD = Decimal('1.00')  # used when an item has no USD value (0)
@@ -840,7 +843,7 @@ def nepal_post_invoice_excel(request, pk):
 
     ws.merge_cells('A1:G1'); cell('A1', 'INVOICE', bold=True, align=center, size=16)
 
-    shipper = ['SHIPPER', sh['name'], parcel.branch.address, f"{parcel.branch.location}, NEPAL",
+    shipper = ['SHIPPER', sh['name'], sh['address'], sh['city'],
                f"EXIM CODE: {sh['exim']}", f"PAN NUMBER: {sh['pan']}", f"PHONE: {sh['phone']}"]
     info = [f"HAWB: {parcel.tracking_id}",
             f"DATE: {timezone.localtime(invoice.created_at):%Y-%m-%d}",
