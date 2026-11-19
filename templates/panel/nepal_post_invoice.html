@@ -13,6 +13,11 @@
   .np-hint { max-width: 210mm; margin: 0 auto 10px; padding: 9px 14px; border-radius: 8px; background: #fff7ed; border: 1px solid #fdba74; font: 13px Arial, sans-serif; color: #7c2d12; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
   .np-hint button { font: 600 13px Arial, sans-serif; padding: 6px 12px; border-radius: 6px; border: 1px solid #7c2d12; background: #fff; color: #7c2d12; cursor: pointer; }
   .np-hint .over { color: #b91c1c; font-weight: 700; }
+  .np-dims { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%; padding-top: 8px; border-top: 1px dashed #fdba74; }
+  .np-dims label { font-weight: 700; }
+  .np-dims input { width: 74px; padding: 5px 6px; border: 1px solid #c2410c; border-radius: 6px; font: 13px Arial, sans-serif; text-align: right; background: #fff; }
+  .np-dims .x { color: #9a3412; }
+  .dimline { font-size: 11px; }
   .nm, .qt { outline: none; border-radius: 3px; text-transform: uppercase; }
   .nm:hover, .qt:hover { background: #fff7d6; box-shadow: 0 0 0 1px #f59e0b; }
   .nm:focus, .qt:focus { background: #fff7d6; box-shadow: 0 0 0 2px #f59e0b; }
@@ -142,9 +147,19 @@
 
 {% if rows %}
 <div class="np-hint no-print" id="npHint">
-  <span>✏️ Click an <b>item name</b> or <b>qty</b> on the invoice to change it · <b>✕</b> removes a line.
+  <span>✏️ Click an <b>item name</b> or <b>qty</b> on the invoice to change it · <b>✕</b> removes a line · set weight, pcs &amp; size below.
     For printing only, nothing is saved. <span id="npOver" class="over" hidden></span></span>
   <button type="button" onclick="npReset()">↺ Reset to original</button>
+  <div class="np-dims">
+    <label for="npW">Weight (KG)</label>
+    <input id="npW" type="number" min="0" step="0.01" placeholder="{{ weight|floatformat:'-2' }}">
+    <label for="npP" style="margin-left:10px">Pcs</label>
+    <input id="npP" type="number" min="1" step="1" placeholder="{{ pcs }}" style="width:58px">
+    <label for="npL" style="margin-left:10px">Size (CM)</label>
+    <input id="npL" type="number" min="0" step="0.1" placeholder="L"><span class="x">×</span>
+    <input id="npB" type="number" min="0" step="0.1" placeholder="B"><span class="x">×</span>
+    <input id="npH" type="number" min="0" step="0.1" placeholder="H">
+  </div>
 </div>
 {% endif %}
 
@@ -175,13 +190,13 @@
     </div>
 
     <div class="boxed meta">
-      <div class="label">HAWB: {{ parcel.tracking_id }}</div>
       <div>DATE: {{ inv.created_at|date:"Y-m-d" }}</div>
       <div>Invoice No: {{ invoice_no }}</div>
       <div style="margin-top:6px">Currency: USD</div>
       <div>MODE OF SHIPMENT: BY AIR (NEPAL POST)</div>
-      <div>T/WEIGHT KG: {{ weight|floatformat:2 }}</div>
-      <div>T/PCS: {{ pcs }}</div>
+      <div>T/WEIGHT KG: <span id="metaW">{{ weight|floatformat:2 }}</span></div>
+      <div id="metaDimRow" hidden>DIMENSION (CM): <span id="metaDim"></span></div>
+      <div>T/PCS: <span id="metaPcs">{{ pcs }}</span></div>
       <div>Country of Origin: NEPAL</div>
     </div>
   </div>
@@ -222,7 +237,7 @@
         <td></td>
         <td></td>
         <td class="c" id="totAmt">{{ total_amount|floatformat:2 }}</td>
-        <td class="c">{{ weight|floatformat:"-2" }}</td>
+        <td class="c" id="totW">{{ weight|floatformat:"-2" }}</td>
       </tr>
     </tbody>
   </table>
@@ -250,7 +265,23 @@
 (function () {
   var MAX = {{ max_total|stringformat:"s" }};
   var KEY = 'np-edits-{{ inv.pk }}-{{ box_no }}';
-  var WEIGHT = '{% if box %}{{ box.weight|floatformat:"-2" }}{% endif %}';
+  var ORIG_W = '{% if box %}{{ box.weight|floatformat:"-2" }}{% endif %}';
+  var WEIGHT = ORIG_W, DIM = '';
+  var wIn = document.getElementById('npW'), pIn = document.getElementById('npP');
+  var ORIG_PCS = '{{ pcs }}';
+  var dIn = ['npL', 'npB', 'npH'].map(function (id) { return document.getElementById(id); });
+  function num(v) { var n = parseFloat(v); return isNaN(n) || n <= 0 ? '' : String(Math.round(n * 100) / 100); }
+  function readBox() {
+    WEIGHT = num(wIn.value) || ORIG_W;
+    var d = dIn.map(function (i) { return num(i.value); });
+    DIM = d.every(Boolean) ? d.join('*') : '';
+    var p = parseInt(pIn.value, 10);
+    document.getElementById('metaPcs').textContent = p > 0 ? p : ORIG_PCS;
+    document.getElementById('metaW').textContent = parseFloat(WEIGHT || 0).toFixed(2);
+    document.getElementById('totW').textContent = WEIGHT;
+    document.getElementById('metaDim').textContent = DIM;
+    document.getElementById('metaDimRow').hidden = !DIM;
+  }
   var rows = Array.prototype.slice.call(document.querySelectorAll('tr.item'));
   if (!rows.length) { window.npPrint = function () { window.print(); }; return; }
 
@@ -288,6 +319,7 @@
   }
   var lastTotal = 0;
   function recalc() {
+    readBox();
     var sn = 0, totQty = 0, totCents = 0, first = true;
     rows.forEach(function (tr) {
       var wt = tr.querySelector('.wt');
@@ -298,7 +330,11 @@
       var cents = Math.round(parseFloat(tr.dataset.rate) * 100) * q;
       tr.querySelector('.amt').textContent = (cents / 100).toFixed(2);
       totQty += q; totCents += cents;
-      wt.textContent = first ? WEIGHT : '';
+      wt.innerHTML = '';
+      if (first) {
+        wt.textContent = WEIGHT;
+        if (DIM) { var s = document.createElement('div'); s.className = 'dimline'; s.textContent = DIM; wt.appendChild(s); }
+      }
       first = false;
     });
     document.getElementById('totQty').textContent = totQty;
@@ -320,6 +356,19 @@
     if (Object.keys(s).length) state[tr.dataset.id] = s; else delete state[tr.dataset.id];
     save(state);
   }
+
+  var bx = state._box || {};
+  wIn.value = bx.w || '';
+  pIn.value = bx.p || '';
+  dIn.forEach(function (i, k) { i.value = (bx.d || [])[k] || ''; });
+  [wIn, pIn].concat(dIn).forEach(function (i) {
+    i.addEventListener('input', function () {
+      var pv = parseInt(pIn.value, 10);
+      var b = { w: num(wIn.value), p: pv > 0 ? String(pv) : '', d: dIn.map(function (x) { return num(x.value); }) };
+      if (b.w || b.p || b.d.some(Boolean)) state._box = b; else delete state._box;
+      save(state); recalc();
+    });
+  });
 
   rows.forEach(function (tr) {
     var s = state[tr.dataset.id];
@@ -347,6 +396,7 @@
   window.npReset = function () {
     try { localStorage.removeItem(KEY); } catch (e) {}
     state = {};
+    wIn.value = ''; pIn.value = ''; dIn.forEach(function (i) { i.value = ''; });
     rows.forEach(function (tr) {
       tr.classList.remove('removed');
       tr.querySelector('.nm').textContent = tr.dataset.name;

@@ -845,8 +845,7 @@ def nepal_post_invoice_excel(request, pk):
 
     shipper = ['SHIPPER', sh['name'], sh['address'], sh['city'],
                f"EXIM CODE: {sh['exim']}", f"PAN NUMBER: {sh['pan']}", f"PHONE: {sh['phone']}"]
-    info = [f"HAWB: {parcel.tracking_id}",
-            f"DATE: {timezone.localtime(invoice.created_at):%Y-%m-%d}",
+    info = [f"DATE: {timezone.localtime(invoice.created_at):%Y-%m-%d}",
             f"Invoice No: {ctx['invoice_no']}", 'Currency: USD',
             'MODE OF SHIPMENT: BY AIR (NEPAL POST)',
             f"T/WEIGHT KG: {ctx['weight']}", f"T/PCS: {ctx['pcs']}",
@@ -857,7 +856,7 @@ def nepal_post_invoice_excel(request, pk):
         if i < len(shipper):
             cell(f'A{r}', shipper[i], bold=i < 2)
         if i < len(info):
-            cell(f'E{r}', info[i], bold=i == 0)
+            cell(f'E{r}', info[i])
     box(f'A2:C{1 + len(shipper)}'); box(f'E2:G{1 + len(info)}')
 
     r = 3 + max(len(shipper), len(info))
