@@ -137,6 +137,20 @@ Dashboard — Courier Spot Panel
     </div>
 
 
+    <!-- Delivered -->
+    <div class="stat">
+
+        <div class="n green">
+            {{ delivered_total }}
+        </div>
+
+        <div class="l">
+            Delivered <span style="opacity:.8">· {{ delivered_today }} today</span>
+        </div>
+
+    </div>
+
+
     <!-- Income Today -->
     <div class="stat">
 
@@ -165,6 +179,62 @@ Dashboard — Courier Spot Panel
     </div>
 
 </div>
+
+
+{% if branch_report %}
+<!-- ================================
+     BRANCH REPORT (owner only)
+================================= -->
+
+<div class="card" style="margin-bottom:22px">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <h3 style="margin:0">
+            Branch Report — {% if report_is_today %}Today{% else %}{{ report_day|date:"d M Y" }}{% endif %}
+        </h3>
+        <form method="get" style="display:flex;gap:8px;align-items:center">
+            <input type="date" name="report_date" value="{{ report_day|date:'Y-m-d' }}"
+                   onchange="this.form.submit()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px">
+            {% if not report_is_today %}<a class="btn ghost" href="{% url 'panel_dashboard' %}">Today</a>{% endif %}
+        </form>
+    </div>
+
+    <table style="margin-top:12px">
+        <thead>
+            <tr>
+                <th>BRANCH</th>
+                <th style="text-align:center">PARCELS RECEIVED</th>
+                <th style="text-align:center">BOXES RECEIVED</th>
+                <th style="text-align:center">PARCELS DELIVERED</th>
+                <th style="text-align:center">BOXES DELIVERED</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in branch_report %}
+            <tr>
+                <td><b>{{ r.branch.name }}</b></td>
+                <td style="text-align:center">{{ r.rp }}</td>
+                <td style="text-align:center">{{ r.rb }}</td>
+                <td style="text-align:center">{{ r.dp }}</td>
+                <td style="text-align:center">{{ r.db }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="font-weight:800;border-top:2px solid var(--border)">
+                <td>TOTAL</td>
+                <td style="text-align:center">{{ branch_total.rp }}</td>
+                <td style="text-align:center">{{ branch_total.rb }}</td>
+                <td style="text-align:center">{{ branch_total.dp }}</td>
+                <td style="text-align:center">{{ branch_total.db }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">
+        Received = shipments booked at the branch that day · Delivered = marked “Delivered” that day.
+    </div>
+
+</div>
+{% endif %}
 
 
 <!-- ================================

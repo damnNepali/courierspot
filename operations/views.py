@@ -72,7 +72,45 @@ def dashboard(request):
         'draft_count': drafts.count(),
         'enquiries': ContactEnquiry.objects.filter(is_resolved=False)[:5] if request.user.is_owner else None,
     }
+    # Delivered: all-time (current status) + delivered today (status event today)
+    ctx['delivered_total'] = parcels.filter(status=Parcel.Status.DELIVERED).count()
+    ctx['delivered_today'] = (TrackingEvent.objects
+                              .filter(status=Parcel.Status.DELIVERED, created_at__date=today,
+                                      parcel__in=parcels)
+                              .values('parcel').distinct().count())
+    if request.user.is_owner:
+        ctx.update(_branch_day_report(request.GET.get('report_date'), today))
     return render(request, 'panel/dashboard.html', ctx)
+
+
+def _branch_day_report(raw_date, today):
+    """Owner dashboard: per branch, parcels/boxes received (booked) and
+    delivered on one day. Delivered = a DELIVERED status update that day."""
+    from django.db.models import Count
+    try:
+        day = date.fromisoformat(raw_date) if raw_date else today
+    except ValueError:
+        day = today
+    live = Parcel.objects.filter(is_draft=False)
+    booked = {r['branch']: r for r in live.filter(created_at__date=day)
+              .values('branch').annotate(p=Count('id', distinct=True), b=Count('boxes'))}
+    delivered_ids = (TrackingEvent.objects
+                     .filter(status=Parcel.Status.DELIVERED, created_at__date=day, parcel__is_draft=False)
+                     .values_list('parcel_id', flat=True).distinct())
+    delivered = {r['branch']: r for r in live.filter(id__in=list(delivered_ids))
+                 .values('branch').annotate(p=Count('id', distinct=True), b=Count('boxes'))}
+    rows, tot = [], {'rp': 0, 'rb': 0, 'dp': 0, 'db': 0}
+    for br in Branch.objects.order_by('name'):
+        bk, dl = booked.get(br.id, {}), delivered.get(br.id, {})
+        row = {'branch': br, 'rp': bk.get('p', 0), 'rb': bk.get('b', 0),
+               'dp': dl.get('p', 0), 'db': dl.get('b', 0)}
+        if not br.is_active and not any(row[k] for k in tot):
+            continue  # hide inactive branches with nothing that day
+        for k in tot:
+            tot[k] += row[k]
+        rows.append(row)
+    return {'report_day': day, 'report_is_today': day == today,
+            'branch_report': rows, 'branch_total': tot}
 
 
 # ---------- new shipment (the heart of the SaaS) ----------
